@@ -1,0 +1,75 @@
+:root {
+  color-scheme: dark;
+  --background: #06070d;
+  --panel: rgba(15, 23, 42, 0.72);
+  --line: rgba(255, 255, 255, 0.1);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.16), transparent 28rem),
+    radial-gradient(circle at 84% 18%, rgba(16, 185, 129, 0.13), transparent 30rem),
+    linear-gradient(135deg, #06070d 0%, #0b1020 48%, #080b12 100%);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+.scanline {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 4px;
+  mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.56));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
+}
+
+.control-button {
+  border: 1px solid rgba(103, 232, 249, 0.4);
+  background: rgba(34, 211, 238, 0.1);
+  color: #cffafe;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.control-button:hover {
+  background: rgba(34, 211, 238, 0.16);
+}
+
+.ghost-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.ghost-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
