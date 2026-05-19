@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+.vercel
+.env
+.env.local
+.env.*.local
+coverage
+dist
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+plan.md
