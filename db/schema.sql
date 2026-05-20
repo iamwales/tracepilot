@@ -7,6 +7,8 @@ create table if not exists public.incidents (
   source text not null,
   description text not null check (char_length(description) between 40 and 12000),
   status text not null default 'draft' check (status in ('draft', 'running', 'completed', 'failed')),
+  severity text not null default 'low' check (severity in ('low', 'medium', 'high', 'critical')),
+  analysis jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
