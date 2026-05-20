@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, RadioTower } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { AlertTriangle, CheckCircle2, ClipboardList, ExternalLink, Loader2, RadioTower } from "lucide-react";
 import { AGENT_STAGES, buildPreviewAssessment } from "./agents";
 import { createIncidentDraft, incidentInputSchema, type IncidentDraft } from "./schema";
+import type { IncidentRecord } from "./types";
 
 const defaultText =
   "Checkout latency climbed above 2.8s after the 09:30 deploy. Payment requests are timing out, retry volume is elevated, and the API logs show database connection pool saturation with intermittent connection refused errors.";
@@ -15,24 +17,59 @@ export function IncidentWorkspace() {
   const [draft, setDraft] = useState<IncidentDraft | null>(null);
   const [error, setError] = useState("");
   const [isPreparing, setIsPreparing] = useState(false);
+  const [incident, setIncident] = useState<IncidentRecord | null>(null);
+  const [history, setHistory] = useState<IncidentRecord[]>([]);
 
   const preview = useMemo(() => (draft ? buildPreviewAssessment(draft) : null), [draft]);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/incidents")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (mounted && payload?.incidents) {
+          setHistory(payload.incidents.slice(0, 4));
+        }
+      })
+      .catch(() => {
+        /* History is helpful, but the console should still work if it cannot load. */
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setIncident(null);
     setIsPreparing(true);
-    window.setTimeout(() => {
-      const parsed = incidentInputSchema.safeParse({ title, source, description });
-      if (!parsed.success) {
-        setDraft(null);
-        setError(parsed.error.issues[0]?.message || "Check the incident details and try again.");
-        setIsPreparing(false);
-        return;
-      }
-      setDraft(createIncidentDraft(parsed.data));
+
+    const parsed = incidentInputSchema.safeParse({ title, source, description });
+    if (!parsed.success) {
+      setDraft(null);
+      setError(parsed.error.issues[0]?.message || "Check the incident details and try again.");
       setIsPreparing(false);
-    }, 350);
+      return;
+    }
+
+    try {
+      setDraft(createIncidentDraft(parsed.data));
+      const response = await fetch("/api/incidents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data)
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not run the agent pipeline.");
+      setIncident(payload.incident);
+      setHistory((current) => [payload.incident, ...current.filter((item) => item.id !== payload.incident.id)].slice(0, 4));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not run the agent pipeline.");
+    } finally {
+      setIsPreparing(false);
+    }
   }
 
   return (
@@ -96,6 +133,7 @@ export function IncidentWorkspace() {
             type="button"
             onClick={() => {
               setDraft(null);
+              setIncident(null);
               setError("");
             }}
           >
@@ -138,6 +176,55 @@ export function IncidentWorkspace() {
             </dl>
             <p className="mt-4 text-sm leading-6 text-emerald-50/80">{preview.summary}</p>
             <p className="mt-3 font-mono text-xs text-emerald-100/70">{draft.fingerprint}</p>
+          </div>
+        ) : null}
+
+        {incident ? (
+          <div className="mt-5 border border-cyan-300/25 bg-cyan-300/10 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
+                  <CheckCircle2 size={17} />
+                  Agent run completed
+                </div>
+                <p className="mt-3 text-sm leading-6 text-cyan-50/80">{incident.analysis.summary}</p>
+              </div>
+              <Link
+                href={`/incidents/${incident.id}`}
+                className="inline-flex shrink-0 items-center gap-2 border border-cyan-300/30 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-300/10"
+              >
+                Report
+                <ExternalLink size={14} />
+              </Link>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {incident.analysis.stages.map((stage) => (
+                <div key={stage.id} className="border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                  <span className="text-cyan-200">{stage.stage}</span>
+                  <span className="text-slate-500"> · </span>
+                  {String(stage.output.summary)}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {history.length ? (
+          <div className="mt-5 border border-white/10 bg-white/[0.025] p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Recent runs</p>
+            <div className="mt-3 space-y-2">
+              {history.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/incidents/${item.id}`}
+                  className="flex items-center justify-between gap-3 border border-white/10 bg-black/20 px-3 py-3 text-sm hover:bg-white/[0.04]"
+                >
+                  <span className="line-clamp-1 text-slate-200">{item.title}</span>
+                  <span className="shrink-0 text-xs uppercase text-cyan-200">{item.severity}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
