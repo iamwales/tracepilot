@@ -188,6 +188,19 @@ export function IncidentWorkspace() {
                   Agent run completed
                 </div>
                 <p className="mt-3 text-sm leading-6 text-cyan-50/80">{incident.analysis.summary}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-cyan-100/80">
+                  <span className="border border-cyan-300/20 bg-black/20 px-2 py-1">
+                    {incident.analysis.provider || "deterministic"}
+                  </span>
+                  <span className="border border-cyan-300/20 bg-black/20 px-2 py-1">
+                    {incident.analysis.model || "deterministic-fallback"}
+                  </span>
+                  {incident.analysis.observability?.traceId ? (
+                    <span className="border border-cyan-300/20 bg-black/20 px-2 py-1">
+                      {incident.analysis.observability.traceId}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <Link
                 href={`/incidents/${incident.id}`}
@@ -199,6 +212,16 @@ export function IncidentWorkspace() {
             </div>
 
             <div className="mt-4 space-y-2">
+              {incident.analysis.guardrails ? (
+                <div className="grid gap-2 text-xs sm:grid-cols-2">
+                  <div className="border border-emerald-300/20 bg-emerald-300/10 p-3 text-emerald-100">
+                    Input guardrail: {incident.analysis.guardrails.input.message}
+                  </div>
+                  <div className="border border-emerald-300/20 bg-emerald-300/10 p-3 text-emerald-100">
+                    Output guardrail: {incident.analysis.guardrails.output.message}
+                  </div>
+                </div>
+              ) : null}
               {incident.analysis.stages.map((stage) => (
                 <div key={stage.id} className="border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
                   <span className="text-cyan-200">{stage.stage}</span>

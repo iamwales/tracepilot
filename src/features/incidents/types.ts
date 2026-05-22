@@ -1,8 +1,28 @@
 import type { Json } from "@/lib/supabase/types";
 import type { AgentStageId } from "./agents";
+import type { GuardrailResult } from "./guardrails";
 
 export type IncidentStatus = "draft" | "running" | "completed" | "failed";
 export type Severity = "low" | "medium" | "high" | "critical";
+export type AnalysisProvider = "deterministic" | "openrouter";
+
+export type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number | null;
+};
+
+export type GuardrailMetadata = {
+  input: GuardrailResult;
+  output: GuardrailResult;
+};
+
+export type ObservabilityMetadata = {
+  traceId: string;
+  openaiTracingEnabled: boolean;
+  langfuseEnabled: boolean;
+};
 
 export type AgentRun = {
   id: string;
@@ -34,6 +54,11 @@ export type IncidentAnalysis = {
   actions: string[];
   report: string;
   stages: AgentRun[];
+  provider?: AnalysisProvider;
+  model?: string;
+  tokenUsage?: TokenUsage;
+  guardrails?: GuardrailMetadata;
+  observability?: ObservabilityMetadata;
 };
 
 export type CreateIncidentResponse = {

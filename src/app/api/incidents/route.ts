@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/auth/user";
-import { runIncidentAgents } from "@/features/incidents/engine";
+import { GuardrailBlockedError, runIncidentPipeline } from "@/features/incidents/pipeline";
 import { incidentInputSchema } from "@/features/incidents/schema";
 import { getIncident, listIncidents, saveIncident } from "@/features/incidents/store";
 import type { IncidentRecord } from "@/features/incidents/types";
@@ -33,7 +33,22 @@ export async function POST(request: Request) {
 
   const now = new Date();
   const id = crypto.randomUUID();
-  const analysis = runIncidentAgents(parsed.data, now);
+  let analysis;
+  try {
+    analysis = await runIncidentPipeline(parsed.data, { incidentId: id, userId, now });
+  } catch (error) {
+    if (error instanceof GuardrailBlockedError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          guardrails: error.guardrails
+        },
+        { status: 422 }
+      );
+    }
+    throw error;
+  }
+
   const incident: IncidentRecord = {
     id,
     userId,
@@ -46,7 +61,7 @@ export async function POST(request: Request) {
       ...analysis,
       stages: analysis.stages.map((stage) => ({
         ...stage,
-        id: crypto.randomUUID(),
+        id: stage.id.startsWith("tp_") ? crypto.randomUUID() : stage.id,
         incidentId: id
       }))
     },

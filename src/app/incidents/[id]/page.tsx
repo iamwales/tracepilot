@@ -40,6 +40,12 @@ export default async function IncidentReportPage({ params }: { params: { id: str
             <ReportStat label="Actions" value={String(incident.analysis.actions.length)} />
           </div>
 
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            <ReportStat label="Provider" value={incident.analysis.provider || "deterministic"} />
+            <ReportStat label="Model" value={incident.analysis.model || "deterministic-fallback"} />
+            <ReportStat label="Trace" value={incident.analysis.observability?.traceId || "local"} />
+          </div>
+
           <article className="whitespace-pre-wrap border border-white/10 bg-black/20 p-5 font-mono text-sm leading-7 text-slate-200">
             {incident.analysis.report}
           </article>
