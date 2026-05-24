@@ -1,73 +1,545 @@
-import { Activity, BrainCircuit, Database, Radar, ShieldCheck, Sparkles } from "lucide-react";
-import { AuthControls } from "@/components/AuthControls";
-import { IncidentWorkspace } from "@/features/incidents/IncidentWorkspace";
-import { AGENT_STAGES } from "@/features/incidents/agents";
+"use client";
 
-export default function HomePage() {
+import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { Share_Tech_Mono, Bebas_Neue, DM_Sans } from "next/font/google";
+import "./landing.css";
+
+const shareTechMono = Share_Tech_Mono({ weight: "400", subsets: ["latin"], variable: "--font-mono" });
+const bebasNeue = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--font-display" });
+const dmSans = DM_Sans({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-body" });
+
+export default function TracePilotLanding() {
+  useEffect(() => {
+    // ── cursor ──
+    const C = document.getElementById('cur');
+    const R = document.getElementById('cur-ring');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      mx = e.clientX;
+      my = e.clientY;
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    
+    let rafId: number;
+    const tick = () => {
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
+      if (C) {
+        C.style.left = mx + 'px';
+        C.style.top = my + 'px';
+      }
+      if (R) {
+        R.style.left = rx + 'px';
+        R.style.top = ry + 'px';
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    tick();
+
+    // ── app window animation ──
+    let animTimeout: NodeJS.Timeout;
+    let tickerInterval: NodeJS.Timeout;
+    let timeouts: NodeJS.Timeout[] = [];
+
+    function runAnim() {
+      // reset cards
+      ['rc1','rc2','rc3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('show');
+      });
+      const cf = document.getElementById('cfill');
+      if (cf) cf.classList.remove('show');
+
+      // reset pipeline
+      const s: Record<string, string> = {s1:'done', s2:'done', s3:'run', s4:''};
+      Object.entries(s).forEach(([id, cls]) => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'pstep ' + (cls || '');
+      });
+      const n3 = document.getElementById('n3'), n4 = document.getElementById('n4');
+      if (n3) n3.className = 'pname run';
+      if (n4) n4.className = 'pname';
+
+      const pstat = document.getElementById('pstat');
+      if (pstat) {
+        pstat.textContent = 'Running…';
+        pstat.style.color = 'rgba(255,255,255,0.5)';
+      }
+
+      const pill = document.getElementById('wpill');
+      const blinker = document.getElementById('blinker');
+      const pilltext = document.getElementById('pilltext');
+      const welap = document.getElementById('welap');
+
+      if (pill) {
+        pill.style.color = '';
+        pill.style.borderColor = '';
+        pill.style.background = '';
+      }
+      if (pilltext) pilltext.textContent = 'ANALYZING';
+      if (blinker) {
+        blinker.style.background = 'var(--red)';
+        blinker.style.boxShadow = '0 0 5px var(--red)';
+      }
+
+      // elapsed ticker
+      let t = 0;
+      clearInterval(tickerInterval);
+      tickerInterval = setInterval(() => {
+        t += 0.1;
+        if (welap) welap.textContent = t.toFixed(1) + 's';
+      }, 100);
+
+      // step 3 done → rc1 at 1.8s
+      timeouts.push(setTimeout(() => {
+        const s3 = document.getElementById('s3'); if (s3) s3.className = 'pstep done';
+        if (n3) n3.className = 'pname done';
+        const s4 = document.getElementById('s4'); if (s4) s4.className = 'pstep run';
+        if (n4) n4.className = 'pname run';
+        if (pstat) pstat.textContent = 'Step 4/4…';
+        const rc1 = document.getElementById('rc1'); if (rc1) rc1.classList.add('show');
+      }, 1800));
+
+      // rc2 at 2.5s
+      timeouts.push(setTimeout(() => {
+        const rc2 = document.getElementById('rc2'); if (rc2) rc2.classList.add('show');
+        timeouts.push(setTimeout(() => {
+          const cf = document.getElementById('cfill'); if (cf) cf.classList.add('show');
+        }, 300));
+      }, 2500));
+
+      // done + rc3 at 3.7s
+      timeouts.push(setTimeout(() => {
+        const s4 = document.getElementById('s4'); if (s4) s4.className = 'pstep done';
+        if (n4) n4.className = 'pname done';
+        clearInterval(tickerInterval);
+        if (pstat) { pstat.textContent = 'Complete ✓'; pstat.style.color = '#1db954'; }
+        if (pill) { pill.style.color = '#1db954'; pill.style.borderColor = 'rgba(29,185,84,.3)'; pill.style.background = 'rgba(29,185,84,.08)'; }
+        if (pilltext) pilltext.textContent = 'DONE';
+        if (blinker) { blinker.style.background = '#1db954'; blinker.style.boxShadow = '0 0 5px #1db954'; }
+        const rc3 = document.getElementById('rc3'); if (rc3) rc3.classList.add('show');
+      }, 3700));
+
+      // loop every 8s
+      animTimeout = setTimeout(runAnim, 8000);
+    }
+
+    animTimeout = setTimeout(runAnim, 600);
+
+    // ── scroll reveal ──
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(rafId);
+      clearTimeout(animTimeout);
+      clearInterval(tickerInterval);
+      timeouts.forEach(clearTimeout);
+      obs.disconnect();
+    };
+  }, []);
+
   return (
-    <main className="min-h-screen overflow-hidden bg-[#06070d] text-slate-100">
-      <div className="scanline" />
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-5 sm:px-8">
-        <header className="flex items-center justify-between border-b border-white/10 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center border border-cyan-300/40 bg-cyan-300/10 text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,0.18)]">
-              <Radar size={21} />
+    <div className={`landing-page ${shareTechMono.variable} ${bebasNeue.variable} ${dmSans.variable} ${dmSans.className}`}>
+      <div id="cur"></div>
+      <div id="cur-ring"></div>
+
+      <nav>
+        <div className="nav-logo">
+          <div className="nav-dot"></div>
+          TRACEPILOT<span>.</span>
+        </div>
+        <ul className="nav-links">
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#integrations">Integrations</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="nav-cta">Login Access</button>
+          </SignInButton>
+        </SignedOut>
+        <SignedIn>
+          <Link href="/dashboard" className="nav-cta" style={{ textDecoration: 'none' }}>Open Dashboard</Link>
+        </SignedIn>
+      </nav>
+
+      {/* ═══ HERO ═══ */}
+      <section className="hero">
+        <div className="hero-left">
+          <div className="hero-badge">
+            <span className="led"></span>
+            AI-Powered Incident Intelligence
+          </div>
+          <h1>
+            <span className="stroke">RAW LOGS</span>
+            <span className="acc">INTO</span>
+            ACTION
+          </h1>
+          <p className="hero-sub">TracePilot's multi-agent pipeline transforms chaotic log data into clear incident reports — root cause, severity, and remediation in seconds.</p>
+          <div className="hero-actions">
+            <SignedOut>
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <button className="btn-p">Start Analyzing Free</button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard">
+                <button className="btn-p">Enter Dashboard →</button>
+              </Link>
+            </SignedIn>
+            <a href="#how" className="btn-g" style={{ display: 'inline-block' }}>See How It Works →</a>
+          </div>
+          <div className="hero-stats">
+            <div><div className="sn">4<span>s</span></div><div className="sl">Avg. Triage Time</div></div>
+            <div><div className="sn">99<span>%</span></div><div className="sl">Root Cause Accuracy</div></div>
+            <div><div className="sn">5<span>+</span></div><div className="sl">Pipeline Agents</div></div>
+          </div>
+        </div>
+
+        <div className="hero-right">
+          <div className="app-window">
+            <div className="wtb">
+              <div className="wdots">
+                <div className="wd cl"></div>
+                <div className="wd mn"></div>
+                <div className="wd mx"></div>
+              </div>
+              <div className="wtitle">TracePilot — Incident #4821 — db-primary outage</div>
+              <div className="wpill" id="wpill">
+                <div className="bd" id="blinker"></div>
+                <span id="pilltext">ANALYZING</span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm uppercase tracking-[0.28em] text-cyan-200">TracePilot</p>
-              <p className="text-xs text-slate-400">Autonomous incident triage console</p>
+
+            <div className="wbody">
+              <div className="wsb">
+                <div className="sbi act">⚡</div>
+                <div className="sbi">▦</div>
+                <div className="sbi">⇌</div>
+                <div className="sbsep"></div>
+                <div className="sbi">🗂</div>
+                <div className="sbi">↺</div>
+                <div className="sbi">◉</div>
+                <div className="sbsep"></div>
+                <div className="sbi bot">⚙</div>
+              </div>
+
+              <div className="wmain">
+                <div className="wtopbar">
+                  <div className="wtab act">Analyze</div>
+                  <div className="wtab">Report</div>
+                  <div className="wtab">Chat</div>
+                  <div className="wtsp"></div>
+                  <button className="wrunbtn">▶ Run Analysis</button>
+                </div>
+
+                <div className="wcontent">
+                  <div className="pinput">
+                    <div className="plabel">Raw Log Input</div>
+                    <div className="lscroll">
+                      <div className="ll"><span className="ll-ts">10:42:01</span><span className="ll-lv i">[INFO]</span><span className="ll-msg">auth-svc started :8080</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:03</span><span className="ll-lv i">[INFO]</span><span className="ll-msg">DB pool init <span className="hw">pool=10</span></span></div>
+                      <div className="ll"><span className="ll-ts">10:42:07</span><span className="ll-lv w">[WARN]</span><span className="ll-msg">p99=<span className="hw">2840ms</span></span></div>
+                      <div className="ll"><span className="ll-ts">10:42:09</span><span className="ll-lv e">[ERR]</span><span className="ll-msg"><span className="hr">ECONNREFUSED</span> db:5432</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:09</span><span className="ll-lv e">[ERR]</span><span className="ll-msg"><span className="hr">ECONN</span> retry 1/3</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:10</span><span className="ll-lv e">[ERR]</span><span className="ll-msg"><span className="hr">ECONN</span> retry 2/3</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:10</span><span className="ll-lv e">[ERR]</span><span className="ll-msg"><span className="hr">Max retries</span> exceeded</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:11</span><span className="ll-lv e">[ERR]</span><span className="ll-msg"><span className="hr">503</span> Unavailable</span></div>
+                      <div className="ll"><span className="ll-ts">10:42:11</span><span className="ll-lv w">[WARN]</span><span className="ll-msg">Breaker <span className="hw">OPEN</span></span></div>
+                      <div className="ll"><span className="ll-ts">10:42:12</span><span className="ll-lv i">[INFO]</span><span className="ll-msg">Failover…<span className="cblink"></span></span></div>
+                    </div>
+                  </div>
+
+                  <div className="presult">
+                    <div className="pbar">
+                      <div className="pb-lbl">Pipeline <span className="ps" id="pstat">Running…</span></div>
+                      <div className="pb-steps">
+                        <div className="pstep done" id="s1"></div>
+                        <div className="pstep done" id="s2"></div>
+                        <div className="pstep run" id="s3"></div>
+                        <div className="pstep" id="s4"></div>
+                      </div>
+                      <div className="pb-names">
+                        <div className="pname done">Normalize</div>
+                        <div className="pname done">Summarize</div>
+                        <div className="pname run" id="n3">Investigate</div>
+                        <div className="pname" id="n4">Remediate</div>
+                      </div>
+                    </div>
+
+                    <div className="rcards">
+                      <div className="rc" id="rc1">
+                        <div className="rc-head">
+                          <span className="rc-lbl">Severity</span>
+                          <span className="rcbadge crit">⬤ CRITICAL</span>
+                        </div>
+                        <div className="rc-txt">DB primary unreachable — <span className="red">503s cascading</span> across all upstream services.</div>
+                      </div>
+
+                      <div className="rc" id="rc2">
+                        <div className="rc-head">
+                          <span className="rc-lbl">Root Cause</span>
+                          <span className="rcbadge hi">94% CONF</span>
+                        </div>
+                        <div className="rc-txt"><span className="bright">ECONNREFUSED</span> on <span className="red">db-primary:5432</span>. Pool exhausted. Circuit breaker opened.</div>
+                        <div className="confrow">
+                          <div className="confbar"><div className="conffill" id="cfill"></div></div>
+                          <div className="confpct">92%</div>
+                        </div>
+                      </div>
+
+                      <div className="rc" id="rc3">
+                        <div className="rc-head">
+                          <span className="rc-lbl">Remediation</span>
+                          <span className="rcbadge ok">3 ACTIONS</span>
+                        </div>
+                        <div className="acts">
+                          <div className="act-item">Verify route to db-primary:5432</div>
+                          <div className="act-item">Promote read replica to primary</div>
+                          <div className="act-item">Drain &amp; restart connection pool</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="wsbar">
+                      <div className="wsi err"><div className="d"></div>5 ERR</div>
+                      <div className="wsi wrn"><div className="d"></div>2 WARN</div>
+                      <div className="wsi ok"><div className="d"></div>OK</div>
+                      <div className="wsp"></div>
+                      <div className="welap" id="welap">0.0s</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <AuthControls />
-        </header>
-
-        <div className="grid flex-1 gap-6 py-7 lg:grid-cols-[0.92fr_1.08fr]">
-          <aside className="flex flex-col justify-between gap-8">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs text-emerald-200">
-                <Sparkles size={14} />
-                Day 1 MVP foundation
-              </div>
-              <h1 className="max-w-2xl text-5xl font-semibold leading-[1.02] text-white sm:text-6xl">
-                Multi-agent incident intelligence, built for fast response.
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
-                Paste messy logs or an incident note. TracePilot structures the signal, previews the agent
-                workflow, and prepares the incident record for AI-powered root-cause analysis.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Metric icon={<Activity size={17} />} label="Signal" value="Live triage" />
-              <Metric icon={<BrainCircuit size={17} />} label="Agents" value={`${AGENT_STAGES.length} stages`} />
-              <Metric icon={<Database size={17} />} label="Data" value="Supabase-ready" />
-            </div>
-
-            <div className="panel">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
-                <ShieldCheck size={17} className="text-emerald-300" />
-                Day 1 architecture boundary
-              </div>
-              <p className="mt-3 text-sm leading-6 text-slate-400">
-                The UI is decoupled from incident validation and stage planning, so Day 2 can plug in real
-                LLM calls and Supabase persistence without rewriting the interface.
-              </p>
-            </div>
-          </aside>
-
-          <IncidentWorkspace />
         </div>
       </section>
-    </main>
-  );
-}
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="border border-white/10 bg-white/[0.04] p-4">
-      <div className="mb-4 text-cyan-200">{icon}</div>
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-100">{value}</p>
+      {/* HOW IT WORKS */}
+      <section className="how" id="how">
+        <div className="how-hd reveal">
+          <div className="stag">The Pipeline</div>
+          <h2>FOUR AGENTS.<br /><em>ONE CLEAR</em> REPORT.</h2>
+          <p>Each stage is purpose-built — from sanitizing raw input to generating actionable remediation with evidence citations.</p>
+        </div>
+        <div className="pipeline">
+          <div className="pstage reveal"><div className="pnum">01 / NORMALIZER</div><div className="picon">🧹</div><div className="pname2">NORMALIZE</div><div className="pdesc">Cleans raw logs. Strips injection patterns, XSS markup, validates structure, extracts evidence snippets for downstream agents.</div><div className="parr"></div></div>
+          <div className="pstage reveal r1"><div className="pnum">02 / SUMMARIZER</div><div className="picon">📋</div><div className="pname2">SUMMARIZE</div><div className="pdesc">Produces the operator narrative. Assigns severity: low, medium, high, or critical — with evidence-backed reasoning.</div><div className="parr"></div></div>
+          <div className="pstage reveal r2"><div className="pnum">03 / INVESTIGATOR</div><div className="picon">🔍</div><div className="pname2">INVESTIGATE</div><div className="pdesc">Root-cause analysis with confidence scores. Identifies the most probable failure origin using normalized context.</div><div className="parr"></div></div>
+          <div className="pstage reveal r3"><div className="pnum">04 / REMEDIATOR</div><div className="picon">⚡</div><div className="pname2">REMEDIATE</div><div className="pdesc">Turns investigation into ranked actions. Tracks findings, refines the plan as engineers submit updates.</div></div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="features" id="features">
+        <div className="reveal">
+          <div className="stag">Capabilities</div>
+          <h2>EVERYTHING YOUR<br /><em>ON-CALL</em> NEEDS.</h2>
+          <p className="sub">From bulk log ingestion to live CloudWatch monitoring — TracePilot covers the full incident lifecycle.</p>
+        </div>
+        <div className="fgrid">
+          <div className="fc lg reveal">
+            <div>
+              <div className="ficon">📦</div>
+              <div className="ftitle">BULK ZIP INGESTION</div>
+              <div className="fbody">Upload a ZIP of many log exports — one per service, container, or time slice. TracePilot queues individual jobs per file, skips unsupported types, and filters macOS metadata automatically.</div>
+              <span className="ftag">25 default / 100 API max</span>
+            </div>
+            <div className="zipvis">
+              <div className="ok">✓ api-server.log (48 KB)</div>
+              <div className="ok">✓ db-connector.log (312 KB)</div>
+              <div className="ok">✓ auth-service.json (220 KB)</div>
+              <div className="sk">✗ config.env (unsupported)</div>
+              <div className="sk">✗ __MACOSX/... (metadata)</div>
+              <div className="ok">✓ workers.ndjson (89 KB)</div>
+              <div style={{ marginTop: '5px' }} className="al">⚑ 3 jobs queued → analyzing</div>
+            </div>
+          </div>
+          <div className="fc reveal">
+            <div className="ficon">📊</div>
+            <div className="ftitle">LOG CHARTS &amp; SIGNALS</div>
+            <div className="fbody">Visual dashboards show severity mix, error/warning density, HTTP status classes, and reliability signals — all extracted from your logs.</div>
+            <div className="sev-chart">
+              <div className="rw">
+                <svg width="84" height="84" viewBox="0 0 84 84">
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="#f0f0f0" strokeWidth="7" />
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="#e8000d" strokeWidth="7" strokeDasharray="42.7 171.4" opacity=".9" />
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="#ff5722" strokeWidth="7" strokeDasharray="74.8 139.3" strokeDashoffset="-42.7" opacity=".7" />
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="#f0a500" strokeWidth="7" strokeDasharray="64.1 150" strokeDashoffset="-117.5" opacity=".6" />
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="#1db954" strokeWidth="7" strokeDasharray="32 182.1" strokeDashoffset="-181.6" opacity=".5" />
+                </svg>
+                <div className="rl">24<small>EVT</small></div>
+              </div>
+              <div className="sleg">
+                <div className="srow"><div className="sdot" style={{ background: '#e8000d' }}></div>CRITICAL 20%</div>
+                <div className="srow"><div className="sdot" style={{ background: '#ff5722' }}></div>HIGH 35%</div>
+                <div className="srow"><div className="sdot" style={{ background: '#f0a500' }}></div>MEDIUM 30%</div>
+                <div className="srow"><div className="sdot" style={{ background: '#1db954' }}></div>LOW 15%</div>
+              </div>
+            </div>
+          </div>
+          <div className="fc reveal">
+            <div className="ficon">💬</div>
+            <div className="ftitle">REMEDIATION CHAT</div>
+            <div className="fbody">Every action opens a scoped chat. Ask why a step matters, which log line backs it up, or what command to run — with full history persisted per job and action.</div>
+            <span className="ftag">Scoped Per Action</span>
+          </div>
+          <div className="fc reveal r1">
+            <div className="ficon">🎯</div>
+            <div className="ftitle">SMART CLARIFICATION</div>
+            <div className="fbody">TracePilot asks targeted questions when logs need operational context: Was there a deployment? Database rotation? Traffic spike? Answers refine the full remediation plan.</div>
+            <span className="ftag">Context-Aware Refinement</span>
+          </div>
+          <div className="fc reveal r2">
+            <div className="ficon">📤</div>
+            <div className="ftitle">AUDIT &amp; EXPORT</div>
+            <div className="fbody">Full audit trail of pipeline stages, remediation actions, clarification answers, and chat messages. Export as JSON, PDF, or signed audit PDF for compliance teams.</div>
+            <span className="ftag">JSON / PDF / Audit PDF</span>
+          </div>
+        </div>
+      </section>
+
+      {/* INTEGRATIONS */}
+      <section className="integrations" id="integrations">
+        <div className="stag" style={{ color: 'var(--red)' }}>Integrations</div>
+        <h2 className="reveal">PLUG INTO YOUR<br />EXISTING STACK.</h2>
+        <p className="reveal">TracePilot notifies your team the moment a high or critical incident is confirmed — wherever they work.</p>
+        <div className="igrid reveal">
+          <div className="icard"><div className="iico">💬</div><div><div className="iname">Slack</div><div className="itype">Incoming Webhook</div></div></div>
+          <div className="icard"><div className="iico">🔗</div><div><div className="iname">Generic Webhook</div><div className="itype">REST / HTTP POST</div></div></div>
+          <div className="icard"><div className="iico">☁️</div><div><div className="iname">AWS CloudWatch</div><div className="itype">Live Log Monitor</div></div></div>
+          <div className="icard"><div className="iico">📧</div><div><div className="iname">Email / Resend</div><div className="itype">Reminder Delivery</div></div></div>
+          <div className="icard"><div className="iico">🟡</div><div><div className="iname">PagerDuty</div><div className="itype">Alert Escalation</div></div></div>
+          <div className="icard"><div className="iico">📡</div><div><div className="iname">Datadog</div><div className="itype">Metrics Correlation</div></div></div>
+          <div className="icard"><div className="iico">🔷</div><div><div className="iname">Jira</div><div className="itype">Ticket Auto-Create</div></div></div>
+          <div className="icard"><div className="iico">⚙️</div><div><div className="iname">GitHub Actions</div><div className="itype">CI/CD Trigger</div></div></div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section className="pricing" id="pricing">
+        <div className="stag reveal">Pricing</div>
+        <h2 className="reveal">SIMPLE, <em>TRANSPARENT</em><br />PRICING.</h2>
+        <p className="psub reveal">No per-seat nonsense. Pay for what your team actually uses.</p>
+        <div className="pgrid">
+          <div className="plan reveal">
+            <div className="pnm">STARTER</div>
+            <div className="pprice"><sup>$</sup>0<small>/mo</small></div>
+            <div className="pdesc2">For solo engineers exploring incident intelligence.</div>
+            <div className="pdiv"></div>
+            <ul className="pfts">
+              <li>50 incident analyses / month</li>
+              <li>Single file + paste ingestion</li>
+              <li>Full 4-agent pipeline</li>
+              <li>Remediation chat (7-day history)</li>
+              <li>JSON export</li>
+              <li>Community support</li>
+            </ul>
+            <SignedOut>
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <button className="pbtn">Start Free</button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard"><button className="pbtn">Enter Dashboard</button></Link>
+            </SignedIn>
+          </div>
+          <div className="plan feat reveal r1">
+            <div className="pbdge">Most Popular</div>
+            <div className="pnm">PRO</div>
+            <div className="pprice"><sup>$</sup>79<small>/mo</small></div>
+            <div className="pdesc2">For on-call teams and growing engineering orgs.</div>
+            <div className="pdiv"></div>
+            <ul className="pfts">
+              <li>Unlimited incident analyses</li>
+              <li>ZIP bulk ingestion (25 files)</li>
+              <li>Full pipeline + strong investigator model</li>
+              <li>Persistent chat history + reminders</li>
+              <li>Slack + webhook integrations</li>
+              <li>PDF + Audit PDF export</li>
+              <li>Dashboard, Compare, Replay, Live</li>
+              <li>Priority support</li>
+            </ul>
+            <SignedOut>
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <button className="pbtn">Get Pro Access</button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard"><button className="pbtn">Upgrade in App</button></Link>
+            </SignedIn>
+          </div>
+          <div className="plan reveal r2">
+            <div className="pnm">ENTERPRISE</div>
+            <div className="pprice">—</div>
+            <div className="pdesc2">Custom scale, compliance, and white-glove setup.</div>
+            <div className="pdiv"></div>
+            <ul className="pfts">
+              <li>ZIP ingestion up to 100 files via API</li>
+              <li>Custom model selection (AWS Bedrock)</li>
+              <li>SSO / SAML</li>
+              <li>On-prem or VPC deployment</li>
+              <li>SLA-backed uptime</li>
+              <li>CloudWatch Live monitoring</li>
+              <li>Dedicated success engineer</li>
+            </ul>
+            <button className="pbtn">Contact Sales</button>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="cstrip">
+        <div>
+          <div className="stag">Get Started</div>
+          <h2>STOP DEBUGGING<br />IN THE <em>DARK.</em></h2>
+          <p>Paste your first log right now — no credit card, no signup friction.</p>
+        </div>
+        <div className="cacts">
+          <SignedOut>
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+              <button className="btn-p">Analyze Logs Free →</button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard">
+              <button className="btn-p">Open Dashboard →</button>
+            </Link>
+          </SignedIn>
+          <button className="btn-g">Book a Demo</button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <div className="ftop">
+          <div className="fbrand">
+            <div className="nav-logo" style={{ color: '#fff' }}><div className="nav-dot"></div>TRACEPILOT<span>.</span></div>
+            <p className="fline">AI-powered incident intelligence that turns raw logs into actionable reports — in seconds, not hours.</p>
+          </div>
+          <div className="fcol"><h4>Product</h4><ul><li><a href="#">Analyze</a></li><li><a href="#">Dashboard</a></li><li><a href="#">Audit Trail</a></li><li><a href="#">Compare</a></li><li><a href="#">Live Monitor</a></li><li><a href="#">Replay</a></li></ul></div>
+          <div className="fcol"><h4>Developers</h4><ul><li><a href="#">API Reference</a></li><li><a href="#">Webhook Docs</a></li><li><a href="#">ZIP Format Guide</a></li><li><a href="#">Changelog</a></li><li><a href="#">Status Page</a></li></ul></div>
+          <div className="fcol"><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Blog</a></li><li><a href="#">Security</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms</a></li></ul></div>
+        </div>
+        <div className="fbot">
+          <div className="fcopy">© 2026 TRACEPILOT INC. — ALL RIGHTS RESERVED</div>
+          <div className="fstat"><div className="d"></div>ALL SYSTEMS OPERATIONAL</div>
+        </div>
+      </footer>
     </div>
   );
 }
