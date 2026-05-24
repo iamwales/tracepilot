@@ -1,11 +1,16 @@
 # TracePilot
 
-TracePilot is a Vercel-ready multi-agent incident analysis app.
+TracePilot is an AI-powered incident intelligence platform for turning raw logs into an actionable incident report. A user can paste logs, upload a log file, or upload a ZIP archive of many log files; Sentinel then runs a multi-agent analysis pipeline that summarizes the incident, classifies severity, investigates likely root cause, recommends remediation steps, and lets the user keep asking focused follow-up questions about the logs and recommended actions.
 
-- Next.js on Vercel
-- Clerk for authentication
-- Supabase Postgres for persistence
-- A testable five-stage agent pipeline for incident triage
+
+## Tech Stack:
+
+- Framework: Next.js on Vercel
+- Authentication: Clerk
+- Database: Supabase Postgres
+- AI Agent SDK: OpenAI Agents SDK
+- AI Language Models: OpenRouter (primary) and OpenAI (observability)
+- Observability: Langfuse
 
 ## MVP Scope
 
