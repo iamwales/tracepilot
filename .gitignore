@@ -11,3 +11,5 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 plan.md
+tsconfig.tsbuildinfo
+.DS_Store
