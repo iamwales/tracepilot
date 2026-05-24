@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { DM_Sans, Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const dmSans = DM_Sans({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-body" });
 const shareTechMono = Share_Tech_Mono({ weight: "400", subsets: ["latin"], variable: "--font-mono" });
@@ -13,14 +14,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const shell = (
-    <html lang="en" className={`${dmSans.variable} ${shareTechMono.variable}`}>
-      <body>{children}</body>
+
+  const body = (
+    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${shareTechMono.variable}`}>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 
   if (!publishableKey) {
-    return shell;
+    return body;
   }
 
   return (
@@ -70,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }
       }}
     >
-      {shell}
+      {body}
     </ClerkProvider>
   );
 }
