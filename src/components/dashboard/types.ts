@@ -12,6 +12,7 @@ export type DashboardIncident = {
   status: DashboardIncidentStatus;
   summary: string;
   evidence: string[];
+  rootCauses: string[];
   actions: string[];
 };
 

@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileArchive, FileUp, Loader2, MessageSquare, Play, Upload } from "lucide-react";
-import { incidents, pipelineStages, sampleLog } from "@/components/dashboard/data";
+import { FileUp, Loader2, MessageSquare, Play, Upload } from "lucide-react";
+import { pipelineStages, sampleLog } from "@/components/dashboard/data";
+import { mapIncidentRecord } from "@/components/dashboard/mappers";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
 import { Badge, Card, MiniLabel, PageHeader, SeverityBadge } from "@/components/dashboard/ui";
+import type { IncidentRecord } from "@/features/incidents/types";
 
-type InputMode = "paste" | "file" | "zip";
+type InputMode = "paste" | "file";
 type AnalysisStatus = "idle" | "running" | "done";
 
 export default function AnalyzePage() {
@@ -16,24 +18,49 @@ export default function AnalyzePage() {
   const [status, setStatus] = useState<AnalysisStatus>("idle");
   const [stage, setStage] = useState(-1);
   const [dragOver, setDragOver] = useState(false);
+  const [incident, setIncident] = useState<IncidentRecord | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showResult = status === "done";
+  const mappedIncident = incident ? mapIncidentRecord(incident) : null;
+  const primaryRootCause = incident?.analysis.rootCauses[0] ?? "No root cause generated yet.";
+  const primaryEvidence = incident?.analysis.evidence[0] ?? "No evidence extracted yet.";
 
-  const runAnalysis = () => {
+  const runAnalysis = async () => {
     if (!logText.trim() || status === "running") return;
 
+    setError(null);
+    setIncident(null);
     setStatus("running");
     setStage(0);
 
     pipelineStages.forEach((_, index) => {
       window.setTimeout(() => {
         setStage(index);
-        if (index === pipelineStages.length - 1) {
-          setStatus("done");
-        }
       }, 500 + index * 560);
     });
+
+    try {
+      const response = await fetch("/api/incidents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: inferTitle(logText),
+          source: "manual",
+          description: logText
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not run analysis.");
+      setIncident(payload.incident);
+      setStage(pipelineStages.length - 1);
+      setStatus("done");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not run analysis.");
+      setStatus("idle");
+      setStage(-1);
+    }
   };
 
   const loadFile = (file?: File) => {
@@ -45,15 +72,15 @@ export default function AnalyzePage() {
 
   return (
     <div className="animate-[fadeIn_250ms_ease-out]">
-      <PageHeader title="Analyze" subtitle="Paste logs, upload a file, or model a ZIP batch before running the incident pipeline." />
+      <PageHeader title="Analyze" subtitle="Paste logs or upload a single log file. TracePilot will run the 5-agent incident pipeline and store the result." />
+      {error ? <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200">{error}</div> : null}
 
       <section className={showResult ? "grid gap-5 xl:grid-cols-2" : "grid gap-5"}>
         <div className="space-y-4">
           <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-white/5">
             {[
               { id: "paste" as const, label: "Paste Logs", icon: Play },
-              { id: "file" as const, label: "Upload File", icon: FileUp },
-              { id: "zip" as const, label: "ZIP Batch", icon: FileArchive }
+              { id: "file" as const, label: "Upload File", icon: FileUp }
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -135,42 +162,13 @@ export default function AnalyzePage() {
             </Card>
           ) : null}
 
-          {mode === "zip" ? (
-            <Card className="grid gap-4 p-5 md:grid-cols-[1fr_1.2fr]">
-              <div>
-                <MiniLabel>ZIP Limits</MiniLabel>
-                <dl className="mt-4 space-y-3 text-sm">
-                  {[
-                    ["Max entries before rejection", "400 files"],
-                    ["Default processed", "25 files"],
-                    ["API processed", "100 files"],
-                    ["Per-file size", "500 KB"],
-                    ["Supported", ".txt .log .json .csv"]
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4 border-b border-slate-200 pb-2 dark:border-white/10">
-                      <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
-                      <dd className="font-mono text-xs text-red-600 dark:text-red-300">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <div className="grid min-h-48 place-items-center rounded-lg border-2 border-dashed border-slate-200 text-center dark:border-white/10">
-                <div>
-                  <FileArchive className="mx-auto text-slate-400" size={34} />
-                  <p className="mt-3 font-medium text-slate-900 dark:text-white">Batch analyzer ready</p>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Each valid file becomes one analysis job.</p>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
           {status !== "idle" ? (
             <Card className="p-4">
               <div className="mb-3 flex items-center justify-between">
                 <MiniLabel>Pipeline Progress</MiniLabel>
                 {status === "done" ? <Badge tone="green">Complete</Badge> : <Badge tone="amber">Running</Badge>}
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${pipelineStages.length}, minmax(0, 1fr))` }}>
                 {pipelineStages.map((name, index) => (
                   <div key={name}>
                     <div className={index <= stage ? "h-1.5 rounded bg-red-500" : "h-1.5 rounded bg-slate-200 dark:bg-white/10"} />
@@ -200,7 +198,8 @@ export default function AnalyzePage() {
               <h2 className="text-xl font-semibold uppercase tracking-wide text-slate-950 dark:text-white">Analysis Result</h2>
               <button
                 type="button"
-                onClick={() => openChat(incidents[0])}
+                onClick={() => mappedIncident && openChat(mappedIncident)}
+                disabled={!mappedIncident}
                 className="inline-flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-500/15 dark:text-red-300"
               >
                 <MessageSquare size={14} />
@@ -212,27 +211,33 @@ export default function AnalyzePage() {
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <MiniLabel>Incident Summary</MiniLabel>
-                  <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">{incidents[0].summary}</p>
+                  <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">{mappedIncident?.summary}</p>
                 </div>
-                <SeverityBadge severity="critical" />
+                {mappedIncident ? <SeverityBadge severity={mappedIncident.severity} /> : null}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge tone="amber">Connection pool exhausted</Badge>
-                <Badge tone="blue">Source auth-service</Badge>
+                <Badge tone="amber">{primaryRootCause.slice(0, 44)}</Badge>
+                <Badge tone="blue">Source {incident?.source ?? "manual"}</Badge>
               </div>
             </Card>
 
             <Card className="p-5">
               <MiniLabel>Root Cause Analysis</MiniLabel>
-              <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
-                ECONNREFUSED on db-primary:5432 after three consecutive retries indicates the primary database process or route is unavailable. The circuit breaker opened correctly, but upstream writes are now blocked.
-              </p>
+              <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+                {(incident?.analysis.rootCauses.length ? incident.analysis.rootCauses : [primaryRootCause]).map((cause) => (
+                  <p key={cause}>{cause}</p>
+                ))}
+              </div>
+              <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                <span className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-slate-500">Primary evidence</span>
+                <p className="mt-2 font-mono text-xs leading-6">{primaryEvidence}</p>
+              </div>
               <div className="mt-4 flex items-center gap-3">
                 <span className="text-sm text-slate-500 dark:text-slate-400">Confidence</span>
                 <div className="h-2 flex-1 overflow-hidden rounded bg-slate-200 dark:bg-white/10">
-                  <div className="h-full w-[94%] rounded bg-emerald-400" />
+                  <div className="h-full rounded bg-emerald-400" style={{ width: `${mappedIncident?.confidence ?? 0}%` }} />
                 </div>
-                <span className="font-mono text-sm text-emerald-600 dark:text-emerald-300">94%</span>
+                <span className="font-mono text-sm text-emerald-600 dark:text-emerald-300">{mappedIncident?.confidence ?? 0}%</span>
               </div>
             </Card>
 
@@ -241,7 +246,7 @@ export default function AnalyzePage() {
                 <MiniLabel>Supporting Evidence</MiniLabel>
               </div>
               <div className="divide-y divide-slate-200 dark:divide-white/10">
-                {incidents[0].evidence.map((line) => (
+                {(mappedIncident?.evidence ?? []).map((line) => (
                   <p key={line} className="px-5 py-3 font-mono text-xs leading-6 text-slate-600 dark:text-slate-300">
                     <span className="text-red-500">›</span> {line}
                   </p>
@@ -252,10 +257,10 @@ export default function AnalyzePage() {
             <Card className="overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
                 <MiniLabel>Remediation Steps</MiniLabel>
-                <Badge tone="green">{incidents[0].actions.length} Actions</Badge>
+                <Badge tone="green">{mappedIncident?.actions.length ?? 0} Actions</Badge>
               </div>
               <div className="divide-y divide-slate-200 dark:divide-white/10">
-                {incidents[0].actions.map((action, index) => (
+                {(mappedIncident?.actions ?? []).map((action, index) => (
                   <div key={action} className="flex gap-3 px-5 py-4">
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-red-500/30 bg-red-500/10 font-mono text-xs text-red-600 dark:text-red-300">
                       {index + 1}
@@ -270,4 +275,38 @@ export default function AnalyzePage() {
       </section>
     </div>
   );
+}
+
+function inferTitle(text: string) {
+  const signalLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /\b(error|failed|timeout|unavailable|refused|critical|exception|degraded)\b/i.test(line));
+  const joined = signalLines.join(" ");
+  const service = text.match(/\b([a-z][a-z0-9-]*(?:service|svc|api|gateway|worker|pool|db|database)[a-z0-9-]*)\b/i)?.[1];
+  const dependency = text.match(/\b([a-z][a-z0-9-]*(?:-[a-z0-9]+)*):(\d{2,5})\b/i)?.[1];
+  const primarySignal = joined.match(/\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|timeout|503|5\d\d|connection pool exhausted|circuit breaker open|latency degraded)\b/i)?.[1];
+
+  if (dependency && primarySignal) {
+    return `${dependency} ${normalizeSignal(primarySignal)} cascade`.slice(0, 90);
+  }
+
+  if (service && primarySignal) {
+    return `${service} ${normalizeSignal(primarySignal)} incident`.slice(0, 90);
+  }
+
+  if (primarySignal) {
+    return `${normalizeSignal(primarySignal)} incident detected`.slice(0, 90);
+  }
+
+  return "Manual log analysis";
+}
+
+function normalizeSignal(signal: string) {
+  const normalized = signal.toLowerCase();
+  if (normalized === "timeout" || normalized === "etimedout") return "timeout";
+  if (normalized === "connection pool exhausted") return "pool exhaustion";
+  if (normalized === "circuit breaker open") return "circuit breaker open";
+  if (normalized === "latency degraded") return "latency degradation";
+  return signal.toUpperCase();
 }
