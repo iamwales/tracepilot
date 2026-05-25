@@ -57,7 +57,7 @@ export async function traceIncidentRun<T>(context: {
   input: Json;
 }, fn: (metadata: TraceMetadata) => Promise<T>) {
   configureTracing();
-  const traceId = `tracepilot-${context.incidentId}`;
+  const traceId = `trace_${context.incidentId.replace(/[^a-zA-Z0-9_]/g, "_")}`;
   const langfuse = getLangfuseClient();
   const langfuseTrace = langfuse?.trace({
     id: traceId,
