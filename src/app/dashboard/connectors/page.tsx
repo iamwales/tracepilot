@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useEffect } from "react";
 import { Cable, Check, SlidersHorizontal } from "lucide-react";
 import { connectors as initialConnectors } from "@/components/dashboard/data";
 import { Badge, Card, MiniLabel, PageHeader } from "@/components/dashboard/ui";
@@ -12,15 +13,68 @@ export default function ConnectorsPage() {
   const [connectors, setConnectors] = useState<Connector[]>(initialConnectors);
   const [filter, setFilter] = useState<Filter>("All");
   const [configuring, setConfiguring] = useState<string | null>(null);
+  const [token, setToken] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const categories = useMemo<Filter[]>(() => ["All", ...Array.from(new Set(initialConnectors.map((connector) => connector.category)))], []);
   const filteredConnectors = filter === "All" ? connectors : connectors.filter((connector) => connector.category === filter);
   const connectedCount = connectors.filter((connector) => connector.connected).length;
 
-  const toggleConnector = (id: string) => {
+  useEffect(() => {
+    let active = true;
+    fetch("/api/connectors")
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Could not load connectors.");
+        if (active) setConnectors(payload.connectors);
+      })
+      .catch((caught) => {
+        if (active) setError(caught instanceof Error ? caught.message : "Could not load connectors.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const toggleConnector = async (id: string) => {
+    const connector = connectors.find((item) => item.id === id);
+    if (!connector) return;
     setConnectors((current) =>
       current.map((connector) => (connector.id === id ? { ...connector, connected: !connector.connected } : connector))
     );
+    try {
+      const response = await fetch("/api/connectors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, connected: !connector.connected })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not update connector.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not update connector.");
+      setConnectors((current) =>
+        current.map((item) => (item.id === id ? { ...item, connected: connector.connected } : item))
+      );
+    }
+  };
+
+  const saveConfig = async (id: string) => {
+    try {
+      const response = await fetch("/api/connectors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, token: token || undefined, webhookUrl: webhookUrl || null, connected: true })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not save connector.");
+      setConnectors((current) => current.map((connector) => (connector.id === id ? payload.connector : connector)));
+      setConfiguring(null);
+      setToken("");
+      setWebhookUrl("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save connector.");
+    }
   };
 
   return (
@@ -30,6 +84,7 @@ export default function ConnectorsPage() {
         subtitle="Attach the operational systems that enrich incident timelines and remediation context."
         action={<Badge tone="green">{connectedCount} Connected</Badge>}
       />
+      {error ? <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200">{error}</div> : null}
 
       <div className="mb-6 flex flex-wrap gap-2">
         {categories.map((category) => (
@@ -118,13 +173,17 @@ export default function ConnectorsPage() {
                 <div className="mt-3 grid gap-2">
                   <input
                     placeholder="API key or token"
+                    value={token}
+                    onChange={(event) => setToken(event.target.value)}
                     className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-red-400 dark:border-white/10 dark:bg-slate-950 dark:text-white"
                   />
                   <input
                     placeholder="Webhook URL"
+                    value={webhookUrl}
+                    onChange={(event) => setWebhookUrl(event.target.value)}
                     className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-red-400 dark:border-white/10 dark:bg-slate-950 dark:text-white"
                   />
-                  <button type="button" className="rounded-md bg-red-600 px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] text-white transition hover:bg-red-500">
+                  <button type="button" onClick={() => saveConfig(connector.id)} className="rounded-md bg-red-600 px-3 py-2 font-mono text-xs uppercase tracking-[0.12em] text-white transition hover:bg-red-500">
                     Save Configuration
                   </button>
                 </div>
