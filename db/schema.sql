@@ -88,14 +88,17 @@ alter table public.notification_preferences enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.team_members enable row level security;
 
+drop policy if exists "Users can read their incidents" on public.incidents;
 create policy "Users can read their incidents"
   on public.incidents for select
   using (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can create their incidents" on public.incidents;
 create policy "Users can create their incidents"
   on public.incidents for insert
   with check (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can read runs for their incidents" on public.agent_runs;
 create policy "Users can read runs for their incidents"
   on public.agent_runs for select
   using (
@@ -107,26 +110,31 @@ create policy "Users can read runs for their incidents"
     )
   );
 
+drop policy if exists "Users can manage their connector configs" on public.connector_configs;
 create policy "Users can manage their connector configs"
   on public.connector_configs for all
   using (clerk_user_id = auth.jwt() ->> 'sub')
   with check (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can manage their settings" on public.user_settings;
 create policy "Users can manage their settings"
   on public.user_settings for all
   using (clerk_user_id = auth.jwt() ->> 'sub')
   with check (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can manage their notification preferences" on public.notification_preferences;
 create policy "Users can manage their notification preferences"
   on public.notification_preferences for all
   using (clerk_user_id = auth.jwt() ->> 'sub')
   with check (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can manage their subscription state" on public.subscriptions;
 create policy "Users can manage their subscription state"
   on public.subscriptions for all
   using (clerk_user_id = auth.jwt() ->> 'sub')
   with check (clerk_user_id = auth.jwt() ->> 'sub');
 
+drop policy if exists "Users can manage their team members" on public.team_members;
 create policy "Users can manage their team members"
   on public.team_members for all
   using (clerk_user_id = auth.jwt() ->> 'sub')
