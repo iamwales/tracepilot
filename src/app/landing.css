@@ -248,8 +248,8 @@
 .ftitle{font-family:var(--font-display);font-size:1.65rem;letter-spacing:.03em;color:var(--black);margin-bottom:.55rem;line-height:1.1}
 .fbody{font-size:.82rem;line-height:1.7;color:var(--gray-600)}
 .ftag{display:inline-block;margin-top:.9rem;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--red);background:var(--red-mist);padding:3px 10px;border:1px solid var(--red-border)}
-.zipvis{background:var(--gray-100);border:1px solid var(--gray-200);padding:1.1rem;font-family:var(--font-mono);font-size:.62rem;color:var(--gray-400);line-height:1.9}
-.zipvis .ok{color:#1db954}.zipvis .sk{color:var(--gray-400);text-decoration:line-through}.zipvis .al{color:rgba(232,0,13,.7)}
+.logvis{background:var(--gray-100);border:1px solid var(--gray-200);padding:1.1rem;font-family:var(--font-mono);font-size:.62rem;color:var(--gray-400);line-height:1.9}
+.logvis .ok{color:#1db954}.logvis .sk{color:var(--gray-400);text-decoration:line-through}.logvis .al{color:rgba(232,0,13,.7)}
 .sev-chart{display:flex;gap:1.8rem;align-items:center;margin-top:.9rem}
 .rw{position:relative;width:84px;height:84px;flex-shrink:0}
 .rw svg{transform:rotate(-90deg)}

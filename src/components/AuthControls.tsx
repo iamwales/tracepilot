@@ -14,7 +14,7 @@ export function AuthControls() {
   return (
     <div className="flex items-center gap-3">
       <SignedOut>
-        <SignInButton mode="modal">
+        <SignInButton mode="modal" forceRedirectUrl="/dashboard">
           <button className="control-button">Sign in</button>
         </SignInButton>
       </SignedOut>
