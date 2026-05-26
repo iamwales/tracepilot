@@ -7,7 +7,11 @@ export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  return NextResponse.json({ connectors: await listConnectors(userId) });
+  try {
+    return NextResponse.json({ connectors: await listConnectors(userId) });
+  } catch {
+    return NextResponse.json({ error: "Could not load connectors." }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -21,5 +25,13 @@ export async function PATCH(request: Request) {
   }
 
   const { id, ...patch } = parsed.data;
-  return NextResponse.json({ connector: await updateConnector(userId, id, patch) });
+  try {
+    return NextResponse.json({ connector: await updateConnector(userId, id, patch) });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Connector not found.") {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    return NextResponse.json({ error: "Could not update connector." }, { status: 500 });
+  }
 }
