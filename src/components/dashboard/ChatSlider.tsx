@@ -17,26 +17,6 @@ const quickQuestions = [
   "What is the risk if we wait?"
 ];
 
-function answerFor(question: string, incidentTitle: string) {
-  if (question.includes("triggered")) {
-    return "The strongest trigger is the first ECONNREFUSED entry, followed by retry exhaustion and the circuit breaker opening. That sequence is enough to classify this as dependency outage, not ordinary latency.";
-  }
-
-  if (question.includes("command")) {
-    return "Start by checking reachability to the dependency, then verify the service process. For this incident: psql connection check, route check, then connection pool metrics.";
-  }
-
-  if (question.includes("verify")) {
-    return "Resolution needs three signals: health check connected, pool errors at zero for a full rolling minute, and the circuit breaker closed.";
-  }
-
-  if (question.includes("risk")) {
-    return "The near-term risk is write failure amplification. If the queue continues growing, worker memory pressure and customer-facing 503s become likely.";
-  }
-
-  return `For ${incidentTitle}, the key pattern is evidence sequence, blast radius, and reversible remediation. I would verify the dependency first, then choose failover only if recovery exceeds the budget.`;
-}
-
 function MessageText({ text }: { text: string }) {
   return (
     <div className="space-y-1 text-sm leading-6">
@@ -70,24 +50,48 @@ export function ChatSlider() {
 
   if (!chatOpen || !chatIncident) return null;
 
-  const send = (value?: string) => {
+  const send = async (value?: string) => {
     const question = (value ?? input).trim();
-    if (!question) return;
+    if (!question || loading) return;
 
     setInput("");
-    setMessages((current) => [...current, { role: "user", text: question }]);
+    const history = messages.slice(-8);
+    setMessages((current) => [...current, { role: "user", text: question }, { role: "assistant", text: "" }]);
     setLoading(true);
 
-    window.setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text: answerFor(question, chatIncident.title)
-        }
-      ]);
+    try {
+      const response = await fetch("/api/incidents/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          incident: chatIncident,
+          history
+        })
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "The remediation agent could not answer right now.");
+      }
+
+      if (!response.body) {
+        throw new Error("The remediation agent returned an empty stream.");
+      }
+
+      await readStream(response.body, (chunk) => {
+        setMessages((current) => updateLastAssistantMessage(current, chunk));
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The remediation agent could not answer right now.";
+      setMessages((current) =>
+        updateLastAssistantMessage(current, `${message}\nTry again, or ask a narrower question about evidence, root cause, or next steps.`, {
+          replace: true
+        })
+      );
+    } finally {
       setLoading(false);
-    }, 450);
+    }
   };
 
   return (
@@ -129,8 +133,9 @@ export function ChatSlider() {
             <button
               key={question}
               type="button"
+              disabled={loading}
               onClick={() => send(question)}
-              className="rounded-md border border-slate-200 px-2.5 py-1.5 text-left text-xs text-slate-600 transition hover:border-red-300 hover:text-red-600 dark:border-white/10 dark:text-slate-400 dark:hover:border-red-400/40 dark:hover:text-red-300"
+              className="rounded-md border border-slate-200 px-2.5 py-1.5 text-left text-xs text-slate-600 transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-slate-400 dark:hover:border-red-400/40 dark:hover:text-red-300"
             >
               {question}
             </button>
@@ -175,8 +180,9 @@ export function ChatSlider() {
           />
           <button
             type="button"
+            disabled={loading}
             onClick={() => send()}
-            className="grid h-10 w-10 place-items-center rounded-md bg-red-600 text-white shadow-[0_0_16px_rgba(220,38,38,0.32)] transition hover:bg-red-500"
+            className="grid h-10 w-10 place-items-center rounded-md bg-red-600 text-white shadow-[0_0_16px_rgba(220,38,38,0.32)] transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Send message"
           >
             <Send size={16} />
@@ -185,4 +191,33 @@ export function ChatSlider() {
       </div>
     </aside>
   );
+}
+
+async function readStream(stream: ReadableStream<Uint8Array>, onChunk: (chunk: string) => void) {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onChunk(decoder.decode(value, { stream: true }));
+  }
+
+  const remaining = decoder.decode();
+  if (remaining) onChunk(remaining);
+}
+
+function updateLastAssistantMessage(messages: ChatMessage[], text: string, options?: { replace?: boolean }): ChatMessage[] {
+  const next = [...messages];
+  for (let index = next.length - 1; index >= 0; index -= 1) {
+    if (next[index].role === "assistant") {
+      next[index] = {
+        ...next[index],
+        text: options?.replace ? text : `${next[index].text}${text}`
+      };
+      return next;
+    }
+  }
+
+  return [...next, { role: "assistant", text }];
 }

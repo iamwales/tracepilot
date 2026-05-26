@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 import { BarChart3, Cable, Gauge, Settings, Zap } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -50,8 +49,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <UserButton appearance={{ elements: { userButtonAvatarBox: "h-8 w-8 border border-red-500/50" } }} />
     </aside>
   );
 }

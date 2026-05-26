@@ -16,6 +16,7 @@ export const incidents: DashboardIncident[] = [
       "10:42:10 ERROR Max retries exceeded, connection pool exhausted",
       "10:42:11 WARN Circuit breaker OPEN for db-primary"
     ],
+    rootCauses: ["Primary database process or network route is unavailable, causing retry exhaustion and circuit breaker activation."],
     actions: [
       "Verify network route to db-primary:5432",
       "Check Postgres process health on the primary host",
@@ -32,6 +33,7 @@ export const incidents: DashboardIncident[] = [
     status: "investigating",
     summary: "JWT verification failures rose after key rotation. A stale JWKS cache is the most likely cause.",
     evidence: ["kid mismatch on gateway-2", "JWKS cache age 47m", "401 rate climbed to 18%"],
+    rootCauses: ["Gateway instances are validating tokens against stale JWKS cache entries after key rotation."],
     actions: ["Invalidate gateway JWKS cache", "Confirm issuer rotation timestamp", "Replay failed auth samples"]
   },
   {
@@ -44,6 +46,7 @@ export const incidents: DashboardIncident[] = [
     status: "mitigated",
     summary: "Queue depth exceeded worker memory limits after a delayed batch replay.",
     evidence: ["rss > 1.8GB", "queue depth 42k", "batch replay started 09:13"],
+    rootCauses: ["Delayed batch replay pushed queue depth beyond worker memory headroom."],
     actions: ["Pause replay job", "Scale worker concurrency", "Add batch size guardrail"]
   },
   {
@@ -56,6 +59,7 @@ export const incidents: DashboardIncident[] = [
     status: "resolved",
     summary: "A deploy invalidated asset cache keys without warming critical bundles.",
     evidence: ["cache miss rate 94%", "asset key prefix changed", "origin latency p95 830ms"],
+    rootCauses: ["Asset cache key changes invalidated edge entries before critical bundles were warmed."],
     actions: ["Warm critical assets", "Review cache key deployment diff", "Pin immutable asset prefixes"]
   },
   {
@@ -68,6 +72,7 @@ export const incidents: DashboardIncident[] = [
     status: "resolved",
     summary: "Keyspace notifications lagged during a persistence snapshot.",
     evidence: ["notification lag 19s", "BGSAVE active", "eviction pressure normal"],
+    rootCauses: ["Redis persistence snapshot competed with keyspace notification delivery."],
     actions: ["Shift snapshot window", "Add lag alert", "Separate notification workload"]
   }
 ];
@@ -100,7 +105,7 @@ export const sampleLog = `2024-01-15T10:42:01.023Z INFO  auth-service started on
 2024-01-15T10:42:10.775Z ERROR 503 Service Unavailable health checks failing
 2024-01-15T10:42:11.002Z WARN  Circuit breaker OPEN for db-primary`;
 
-export const pipelineStages = ["Normalizer", "Summarizer", "Investigator", "Remediator"] as const;
+export const pipelineStages = ["Intake", "Severity", "Root Cause", "Remediation", "Report"] as const;
 
 export const teamMembers: TeamMember[] = [
   { name: "James Doe", email: "james@tracepilot.io", role: "Owner", initials: "JD", active: true },

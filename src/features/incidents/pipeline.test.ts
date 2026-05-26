@@ -20,7 +20,7 @@ describe("incident pipeline", () => {
     expect(analysis.provider).toBe("deterministic");
     expect(analysis.guardrails?.input.passed).toBe(true);
     expect(analysis.guardrails?.output.passed).toBe(true);
-    expect(analysis.observability?.traceId).toBe("tracepilot-incident-test");
+    expect(analysis.observability?.traceId).toBe("trace_incident_test");
     expect(analysis.tokenUsage?.totalTokens).toBe(0);
   });
 

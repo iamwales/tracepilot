@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import { UserButton } from "@clerk/nextjs";
 import { Bell, Moon, Search, Sun } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -62,6 +63,42 @@ export function Topbar() {
         <Bell size={16} />
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
       </button>
+
+      <div className="flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-2 dark:border-white/10 dark:bg-white/5">
+        <UserButton
+          afterSignOutUrl="/"
+          appearance={{
+            variables: {
+              colorPrimary: "#dc2626",
+              colorText: isDark ? "#f8fafc" : "#0f172a",
+              colorTextSecondary: isDark ? "#94a3b8" : "#64748b",
+              colorBackground: isDark ? "#020617" : "#ffffff",
+              colorInputBackground: isDark ? "#0f172a" : "#f8fafc",
+              colorBorder: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0",
+              borderRadius: "8px",
+              fontFamily: "var(--font-body), sans-serif"
+            },
+            elements: {
+              userButtonTrigger: "focus:shadow-none focus:ring-2 focus:ring-red-500/30 rounded-md",
+              userButtonAvatarBox: "h-7 w-7 border border-red-500/50 shadow-[0_0_12px_rgba(220,38,38,0.18)]",
+              userButtonPopoverCard:
+                "mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-2xl shadow-slate-950/10 dark:border-white/10 dark:bg-slate-950 dark:shadow-black/40",
+              userButtonPopoverMain: "bg-white dark:bg-slate-950",
+              userButtonPopoverFooter: "hidden",
+              userPreviewMainIdentifier: "text-sm font-semibold text-slate-950 dark:text-white",
+              userPreviewSecondaryIdentifier: "text-xs text-slate-500 dark:text-slate-400",
+              userButtonPopoverActionButton:
+                "mx-2 my-1 rounded-md px-3 py-2 text-sm text-slate-700 transition hover:bg-red-500/10 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-300",
+              userButtonPopoverActionButtonText: "font-medium",
+              userButtonPopoverActionButtonIcon: "text-slate-400 dark:text-slate-500",
+              userButtonPopoverActionButton__manageAccount: "border-t border-slate-200 pt-3 dark:border-white/10",
+              userButtonPopoverActionButton__signOut: "text-red-600 dark:text-red-300",
+              userButtonPopoverActions: "py-2",
+              userPreview: "border-b border-slate-200 px-4 py-3 dark:border-white/10"
+            }
+          }}
+        />
+      </div>
     </header>
   );
 }

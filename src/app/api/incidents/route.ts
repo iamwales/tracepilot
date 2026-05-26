@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/auth/user";
 import { GuardrailBlockedError, runIncidentPipeline } from "@/features/incidents/pipeline";
 import { incidentInputSchema } from "@/features/incidents/schema";
+import { getSubscription } from "@/features/dashboard/store";
+import { getPlanIncidentLimit } from "@/features/dashboard/plans";
 import { getIncident, listIncidents, saveIncident } from "@/features/incidents/store";
 import type { IncidentRecord } from "@/features/incidents/types";
 
@@ -32,6 +34,20 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
+  const subscription = await getSubscription(userId);
+  const incidentLimit = getPlanIncidentLimit(subscription.plan);
+  if (subscription.usage.analyses >= incidentLimit) {
+    return NextResponse.json(
+      {
+        error: `Monthly incident limit reached for the ${subscription.planName || subscription.plan} plan.`,
+        plan: subscription.plan,
+        usage: subscription.usage.analyses,
+        limit: incidentLimit
+      },
+      { status: 402 }
+    );
+  }
+
   const id = crypto.randomUUID();
   let analysis;
   try {

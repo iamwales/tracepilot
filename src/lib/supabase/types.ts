@@ -56,6 +56,120 @@ export type Database = {
           }
         ];
       };
+      connector_configs: {
+        Row: {
+          id: string;
+          clerk_user_id: string;
+          connector_id: string;
+          name: string;
+          category: string;
+          description: string;
+          connected: boolean;
+          token_configured: boolean;
+          webhook_url: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          clerk_user_id: string;
+          connector_id: string;
+          name: string;
+          category: string;
+          description: string;
+          connected?: boolean;
+          token_configured?: boolean;
+          webhook_url?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["connector_configs"]["Insert"]>;
+        Relationships: [];
+      };
+      user_settings: {
+        Row: {
+          clerk_user_id: string;
+          full_name: string;
+          email: string;
+          company: string;
+          role: string;
+          updated_at: string;
+        };
+        Insert: {
+          clerk_user_id: string;
+          full_name: string;
+          email: string;
+          company: string;
+          role: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          clerk_user_id: string;
+          critical: boolean;
+          high: boolean;
+          digest: boolean;
+          remediation: boolean;
+          connectors: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          clerk_user_id: string;
+          critical?: boolean;
+          high?: boolean;
+          digest?: boolean;
+          remediation?: boolean;
+          connectors?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notification_preferences"]["Insert"]>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          clerk_user_id: string;
+          plan: "starter" | "pro" | "enterprise";
+          status: "active" | "trialing" | "past_due" | "canceled";
+          renews_at: string | null;
+          usage: Json;
+          updated_at: string;
+        };
+        Insert: {
+          clerk_user_id: string;
+          plan?: "starter" | "pro" | "enterprise";
+          status?: "active" | "trialing" | "past_due" | "canceled";
+          renews_at?: string | null;
+          usage?: Json;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
+      team_members: {
+        Row: {
+          id: string;
+          clerk_user_id: string;
+          name: string;
+          email: string;
+          role: "Owner" | "Admin" | "Member";
+          initials: string;
+          active: boolean;
+          invited_at: string;
+        };
+        Insert: {
+          id?: string;
+          clerk_user_id: string;
+          name: string;
+          email: string;
+          role: "Owner" | "Admin" | "Member";
+          initials: string;
+          active?: boolean;
+          invited_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["team_members"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

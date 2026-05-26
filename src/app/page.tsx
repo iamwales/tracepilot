@@ -167,7 +167,7 @@ export default function TracePilotLanding() {
         </ul>
         
         <SignedOut>
-          <SignInButton mode="modal">
+          <SignInButton mode="modal" forceRedirectUrl="/dashboard">
             <button className="nav-cta">Login Access</button>
           </SignInButton>
         </SignedOut>
@@ -349,24 +349,24 @@ export default function TracePilotLanding() {
         <div className="reveal">
           <div className="stag">Capabilities</div>
           <h2>EVERYTHING YOUR<br /><em>ON-CALL</em> NEEDS.</h2>
-          <p className="sub">From bulk log ingestion to live CloudWatch monitoring — TracePilot covers the full incident lifecycle.</p>
+          <p className="sub">From single-file log analysis to live CloudWatch monitoring — TracePilot covers the full incident lifecycle.</p>
         </div>
         <div className="fgrid">
           <div className="fc lg reveal">
             <div>
-              <div className="ficon">📦</div>
-              <div className="ftitle">BULK ZIP INGESTION</div>
-              <div className="fbody">Upload a ZIP of many log exports — one per service, container, or time slice. TracePilot queues individual jobs per file, skips unsupported types, and filters macOS metadata automatically.</div>
-              <span className="ftag">25 default / 100 API max</span>
+              <div className="ficon">📄</div>
+              <div className="ftitle">LOG FILE ANALYSIS</div>
+              <div className="fbody">Paste logs or upload a single log export. TracePilot extracts evidence, runs the agent pipeline, and stores the incident report without retaining the raw file.</div>
+              <span className="ftag">TXT / LOG / JSON / NDJSON</span>
             </div>
-            <div className="zipvis">
+            <div className="logvis">
               <div className="ok">✓ api-server.log (48 KB)</div>
               <div className="ok">✓ db-connector.log (312 KB)</div>
               <div className="ok">✓ auth-service.json (220 KB)</div>
               <div className="sk">✗ config.env (unsupported)</div>
-              <div className="sk">✗ __MACOSX/... (metadata)</div>
+              <div className="sk">✗ binary.dump (binary)</div>
               <div className="ok">✓ workers.ndjson (89 KB)</div>
-              <div style={{ marginTop: '5px' }} className="al">⚑ 3 jobs queued → analyzing</div>
+              <div style={{ marginTop: '5px' }} className="al">⚑ evidence extracted → agents running</div>
             </div>
           </div>
           <div className="fc reveal">
@@ -461,12 +461,12 @@ export default function TracePilotLanding() {
           <div className="plan feat reveal r1">
             <div className="pbdge">Most Popular</div>
             <div className="pnm">PRO</div>
-            <div className="pprice"><sup>$</sup>79<small>/mo</small></div>
+            <div className="pprice"><sup>$</sup>20<small>/mo</small></div>
             <div className="pdesc2">For on-call teams and growing engineering orgs.</div>
             <div className="pdiv"></div>
             <ul className="pfts">
-              <li>Unlimited incident analyses</li>
-              <li>ZIP bulk ingestion (25 files)</li>
+              <li>10,000 incident analyses / month</li>
+              <li>Single log file upload</li>
               <li>Full pipeline + strong investigator model</li>
               <li>Persistent chat history + reminders</li>
               <li>Slack + webhook integrations</li>
@@ -489,7 +489,8 @@ export default function TracePilotLanding() {
             <div className="pdesc2">Custom scale, compliance, and white-glove setup.</div>
             <div className="pdiv"></div>
             <ul className="pfts">
-              <li>ZIP ingestion up to 100 files via API</li>
+              <li>50,000 incident analyses / month</li>
+              <li>Custom ingestion workflows</li>
               <li>Custom model selection (AWS Bedrock)</li>
               <li>SSO / SAML</li>
               <li>On-prem or VPC deployment</li>
@@ -532,7 +533,7 @@ export default function TracePilotLanding() {
             <p className="fline">AI-powered incident intelligence that turns raw logs into actionable reports — in seconds, not hours.</p>
           </div>
           <div className="fcol"><h4>Product</h4><ul><li><a href="#">Analyze</a></li><li><a href="#">Dashboard</a></li><li><a href="#">Audit Trail</a></li><li><a href="#">Compare</a></li><li><a href="#">Live Monitor</a></li><li><a href="#">Replay</a></li></ul></div>
-          <div className="fcol"><h4>Developers</h4><ul><li><a href="#">API Reference</a></li><li><a href="#">Webhook Docs</a></li><li><a href="#">ZIP Format Guide</a></li><li><a href="#">Changelog</a></li><li><a href="#">Status Page</a></li></ul></div>
+          <div className="fcol"><h4>Developers</h4><ul><li><a href="#">API Reference</a></li><li><a href="#">Webhook Docs</a></li><li><a href="#">Log Format Guide</a></li><li><a href="#">Changelog</a></li><li><a href="#">Status Page</a></li></ul></div>
           <div className="fcol"><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Blog</a></li><li><a href="#">Security</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms</a></li></ul></div>
         </div>
         <div className="fbot">
