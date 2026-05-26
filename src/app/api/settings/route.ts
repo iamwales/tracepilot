@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import { profileUpdateSchema } from "@/features/dashboard/schemas";
 import { getProfile, updateProfile } from "@/features/dashboard/store";
-import { getCurrentUserId } from "@/lib/auth/user";
+import { getCurrentUserProfile } from "@/lib/auth/user";
 
 export async function GET() {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getCurrentUserProfile();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  return NextResponse.json({ profile: await getProfile(userId) });
+  return NextResponse.json({
+    profile: await getProfile(user.id, {
+      fullName: user.fullName,
+      email: user.email
+    })
+  });
 }
 
 export async function PATCH(request: Request) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getCurrentUserProfile();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const parsed = profileUpdateSchema.safeParse(body);
@@ -20,5 +25,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid profile update." }, { status: 422 });
   }
 
-  return NextResponse.json({ profile: await updateProfile(userId, parsed.data) });
+  return NextResponse.json({
+    profile: await updateProfile(user.id, {
+      ...parsed.data,
+      fullName: user.fullName,
+      email: user.email
+    })
+  });
 }
