@@ -461,11 +461,11 @@ export default function TracePilotLanding() {
           <div className="plan feat reveal r1">
             <div className="pbdge">Most Popular</div>
             <div className="pnm">PRO</div>
-            <div className="pprice"><sup>$</sup>79<small>/mo</small></div>
+            <div className="pprice"><sup>$</sup>20<small>/mo</small></div>
             <div className="pdesc2">For on-call teams and growing engineering orgs.</div>
             <div className="pdiv"></div>
             <ul className="pfts">
-              <li>Unlimited incident analyses</li>
+              <li>10,000 incident analyses / month</li>
               <li>Single log file upload</li>
               <li>Full pipeline + strong investigator model</li>
               <li>Persistent chat history + reminders</li>
@@ -489,6 +489,7 @@ export default function TracePilotLanding() {
             <div className="pdesc2">Custom scale, compliance, and white-glove setup.</div>
             <div className="pdiv"></div>
             <ul className="pfts">
+              <li>50,000 incident analyses / month</li>
               <li>Custom ingestion workflows</li>
               <li>Custom model selection (AWS Bedrock)</li>
               <li>SSO / SAML</li>

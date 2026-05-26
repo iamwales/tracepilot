@@ -70,6 +70,29 @@ export async function listIncidents(userId: string): Promise<IncidentRecord[]> {
   }));
 }
 
+export async function countMonthlyIncidents(userId: string, now = new Date()): Promise<number> {
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const nextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+  if (!hasSupabaseConfig()) {
+    return Array.from(memoryStore.values()).filter((record) => {
+      const createdAt = new Date(record.createdAt);
+      return record.userId === userId && createdAt >= monthStart && createdAt < nextMonthStart;
+    }).length;
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { count, error } = await supabase
+    .from("incidents")
+    .select("id", { count: "exact", head: true })
+    .eq("clerk_user_id", userId)
+    .gte("created_at", monthStart.toISOString())
+    .lt("created_at", nextMonthStart.toISOString());
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function getIncident(userId: string, id: string): Promise<IncidentRecord | null> {
   if (!hasSupabaseConfig()) {
     const record = memoryStore.get(id);

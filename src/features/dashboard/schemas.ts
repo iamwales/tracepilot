@@ -28,5 +28,11 @@ export const notificationUpdateSchema = z.object({
 });
 
 export const subscriptionUpdateSchema = z.object({
-  plan: z.enum(["starter", "pro", "enterprise"])
+  plan: z.enum(["starter", "pro", "enterprise"]),
+  payment: z
+    .object({
+      testMode: z.boolean().optional(),
+      last4: z.string().trim().regex(/^\d{4}$/).optional()
+    })
+    .optional()
 });

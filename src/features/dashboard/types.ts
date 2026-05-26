@@ -31,6 +31,10 @@ export type SubscriptionSettings = {
   plan: "starter" | "pro" | "enterprise";
   status: "active" | "trialing" | "past_due" | "canceled";
   renewsAt: string | null;
+  provider: "clerk" | "local";
+  providerSubscriptionId: string | null;
+  planName: string;
+  amountUsd: number | null;
   usage: {
     analyses: number;
     apiCalls: number;
