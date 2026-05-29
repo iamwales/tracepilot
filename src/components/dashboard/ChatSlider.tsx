@@ -32,16 +32,32 @@ export function ChatSlider() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chatIncident) return;
-    setMessages([
-      {
-        role: "assistant",
-        text: `I'm scoped to ${chatIncident.id}: ${chatIncident.title}. Ask me about evidence, blast radius, or remediation.`
-      }
-    ]);
+    let active = true;
+    setHistoryLoading(true);
+    setMessages([]);
+
+    fetch(`/api/incidents/chat?incidentId=${encodeURIComponent(chatIncident.recordId)}`)
+      .then(async (response) => {
+        const payload = (await response.json()) as { messages?: ChatMessage[]; error?: string };
+        if (!response.ok) throw new Error(payload.error || "Could not load incident chat history.");
+        if (!active) return;
+        setMessages(payload.messages?.length ? payload.messages : [introMessage(chatIncident.id, chatIncident.title)]);
+      })
+      .catch(() => {
+        if (active) setMessages([introMessage(chatIncident.id, chatIncident.title)]);
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [chatIncident]);
 
   useEffect(() => {
@@ -52,10 +68,10 @@ export function ChatSlider() {
 
   const send = async (value?: string) => {
     const question = (value ?? input).trim();
-    if (!question || loading) return;
+    if (!question || loading || historyLoading) return;
 
     setInput("");
-    const history = messages.slice(-8);
+    const history = messages.slice(-24);
     setMessages((current) => [...current, { role: "user", text: question }, { role: "assistant", text: "" }]);
     setLoading(true);
 
@@ -133,7 +149,7 @@ export function ChatSlider() {
             <button
               key={question}
               type="button"
-              disabled={loading}
+              disabled={loading || historyLoading}
               onClick={() => send(question)}
               className="rounded-md border border-slate-200 px-2.5 py-1.5 text-left text-xs text-slate-600 transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-slate-400 dark:hover:border-red-400/40 dark:hover:text-red-300"
             >
@@ -144,6 +160,13 @@ export function ChatSlider() {
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {historyLoading ? (
+          <div className="space-y-3">
+            <div className="h-14 w-4/5 animate-pulse rounded-lg bg-slate-100 dark:bg-white/[0.05]" />
+            <div className="ml-auto h-10 w-2/3 animate-pulse rounded-lg bg-red-500/20" />
+            <div className="h-20 w-5/6 animate-pulse rounded-lg bg-slate-100 dark:bg-white/[0.05]" />
+          </div>
+        ) : null}
         {messages.map((message, index) => (
           <div key={`${message.role}-${index}`} className={message.role === "user" ? "flex justify-end" : "flex justify-start"}>
             <div
@@ -176,11 +199,12 @@ export function ChatSlider() {
               if (event.key === "Enter") send();
             }}
             placeholder="Ask about this incident..."
+            disabled={historyLoading}
             className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-red-400 dark:border-white/10 dark:bg-slate-950 dark:text-white"
           />
           <button
             type="button"
-            disabled={loading}
+            disabled={loading || historyLoading}
             onClick={() => send()}
             className="grid h-10 w-10 place-items-center rounded-md bg-red-600 text-white shadow-[0_0_16px_rgba(220,38,38,0.32)] transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Send message"
@@ -191,6 +215,13 @@ export function ChatSlider() {
       </div>
     </aside>
   );
+}
+
+function introMessage(id: string, title: string): ChatMessage {
+  return {
+    role: "assistant",
+    text: `I'm scoped to ${id}: ${title}. Ask me about evidence, blast radius, or remediation.`
+  };
 }
 
 async function readStream(stream: ReadableStream<Uint8Array>, onChunk: (chunk: string) => void) {

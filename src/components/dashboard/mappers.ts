@@ -4,6 +4,7 @@ import type { DashboardIncident, DashboardIncidentStatus } from "./types";
 export function mapIncidentRecord(record: IncidentRecord): DashboardIncident {
   return {
     id: `#${record.id.slice(0, 8)}`,
+    recordId: record.id,
     title: record.title,
     severity: record.severity,
     timeAgo: formatTimeAgo(record.createdAt),
