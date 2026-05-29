@@ -10,6 +10,37 @@ const shareTechMono = Share_Tech_Mono({ weight: "400", subsets: ["latin"], varia
 const bebasNeue = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--font-display" });
 const dmSans = DM_Sans({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-body" });
 
+function LandingAuthCta({
+  signedOutText,
+  signedInText,
+  className
+}: {
+  signedOutText: string;
+  signedInText: string;
+  className: string;
+}) {
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return (
+      <Link href="/dashboard" className={className} style={{ textDecoration: 'none' }}>
+        {signedInText}
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      <SignedOut>
+        <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+          <button className={className}>{signedOutText}</button>
+        </SignInButton>
+      </SignedOut>
+      <SignedIn>
+        <Link href="/dashboard" className={className} style={{ textDecoration: 'none' }}>{signedInText}</Link>
+      </SignedIn>
+    </>
+  );
+}
+
 export default function TracePilotLanding() {
   useEffect(() => {
     // ── cursor ──
@@ -169,14 +200,7 @@ export default function TracePilotLanding() {
           <li><a href="#pricing">Pricing</a></li>
         </ul>
         
-        <SignedOut>
-          <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-            <button className="nav-cta">Login Access</button>
-          </SignInButton>
-        </SignedOut>
-        <SignedIn>
-          <Link href="/dashboard" className="nav-cta" style={{ textDecoration: 'none' }}>Open Dashboard</Link>
-        </SignedIn>
+        <LandingAuthCta signedOutText="Login Access" signedInText="Open Dashboard" className="nav-cta" />
       </nav>
 
       {/* ═══ HERO ═══ */}
@@ -193,16 +217,7 @@ export default function TracePilotLanding() {
           </h1>
           <p className="hero-sub">TracePilot's multi-agent pipeline transforms chaotic log data into clear incident reports — root cause, severity, and remediation in seconds.</p>
           <div className="hero-actions">
-            <SignedOut>
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                <button className="btn-p">Start Analyzing Free</button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard">
-                <button className="btn-p">Enter Dashboard →</button>
-              </Link>
-            </SignedIn>
+            <LandingAuthCta signedOutText="Start Analyzing Free" signedInText="Enter Dashboard →" className="btn-p" />
             <a href="#how" className="btn-g" style={{ display: 'inline-block' }}>See How It Works →</a>
           </div>
           <div className="hero-stats">
@@ -455,14 +470,7 @@ export default function TracePilotLanding() {
               <li>JSON export</li>
               <li>Community support</li>
             </ul>
-            <SignedOut>
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                <button className="pbtn">Start Free</button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard"><button className="pbtn">Enter Dashboard</button></Link>
-            </SignedIn>
+            <LandingAuthCta signedOutText="Start Free" signedInText="Enter Dashboard" className="pbtn" />
           </div>
           <div className="plan feat reveal r1">
             <div className="pbdge">Most Popular</div>
@@ -480,14 +488,7 @@ export default function TracePilotLanding() {
               <li>Dashboard, Compare, Replay, Live</li>
               <li>Priority support</li>
             </ul>
-            <SignedOut>
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                <button className="pbtn">Get Pro Access</button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard"><button className="pbtn">Upgrade in App</button></Link>
-            </SignedIn>
+            <LandingAuthCta signedOutText="Get Pro Access" signedInText="Upgrade in App" className="pbtn" />
           </div>
           <div className="plan reveal r2">
             <div className="pnm">ENTERPRISE</div>
@@ -517,16 +518,7 @@ export default function TracePilotLanding() {
           <p>Paste your first log right now — no credit card, no signup friction.</p>
         </div>
         <div className="cacts">
-          <SignedOut>
-            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-              <button className="btn-p">Analyze Logs Free →</button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <Link href="/dashboard">
-              <button className="btn-p">Open Dashboard →</button>
-            </Link>
-          </SignedIn>
+          <LandingAuthCta signedOutText="Analyze Logs Free →" signedInText="Open Dashboard →" className="btn-p" />
           <button className="btn-g">Book a Demo</button>
         </div>
       </section>
