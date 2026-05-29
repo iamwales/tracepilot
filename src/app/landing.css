@@ -221,7 +221,7 @@
 .how-hd h2{font-family:var(--font-display);font-size:clamp(3rem,5vw,5.5rem);line-height:.95;letter-spacing:.02em;color:var(--black);font-weight:normal;margin:0;}
 .how-hd h2 em{font-style:normal;color:var(--red)}
 .how-hd p{font-size:.95rem;color:var(--gray-600);line-height:1.7;margin-top:1.1rem}
-.pipeline{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--gray-200);position:relative;z-index:1}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--gray-200);position:relative;z-index:1}
 .pstage{padding:2.2rem;border-right:1px solid var(--gray-200);position:relative;background:var(--white);transition:background .3s;overflow:hidden}
 .pstage:last-child{border-right:none}
 .pstage::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
