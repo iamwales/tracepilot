@@ -6,6 +6,7 @@ const severitySchema = z.enum(["low", "medium", "high", "critical"]);
 
 const incidentChatContextSchema = z.object({
   id: z.string().min(1),
+  recordId: z.string().min(1).optional(),
   title: z.string().min(1).max(160),
   severity: severitySchema,
   confidence: z.number().min(0).max(100),
@@ -24,7 +25,7 @@ const chatMessageSchema = z.object({
 export const remediationChatRequestSchema = z.object({
   question: z.string().trim().min(2, "Ask a clearer remediation question.").max(1000),
   incident: incidentChatContextSchema,
-  history: z.array(chatMessageSchema).max(8).default([])
+  history: z.array(chatMessageSchema).max(24).default([])
 });
 
 export type RemediationChatRequest = z.infer<typeof remediationChatRequestSchema>;

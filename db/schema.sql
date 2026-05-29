@@ -21,8 +21,20 @@ create table if not exists public.agent_runs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.incident_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  clerk_user_id text not null,
+  incident_id text not null,
+  role text not null check (role in ('user', 'assistant')),
+  content text not null check (char_length(content) between 1 and 12000),
+  provider text,
+  model text,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists incidents_user_created_idx on public.incidents (clerk_user_id, created_at desc);
 create index if not exists agent_runs_incident_idx on public.agent_runs (incident_id, created_at asc);
+create index if not exists incident_chat_messages_incident_idx on public.incident_chat_messages (clerk_user_id, incident_id, created_at asc);
 
 create table if not exists public.connector_configs (
   id uuid primary key default gen_random_uuid(),
@@ -82,6 +94,7 @@ create index if not exists team_members_user_idx on public.team_members (clerk_u
 
 alter table public.incidents enable row level security;
 alter table public.agent_runs enable row level security;
+alter table public.incident_chat_messages enable row level security;
 alter table public.connector_configs enable row level security;
 alter table public.user_settings enable row level security;
 alter table public.notification_preferences enable row level security;
@@ -109,6 +122,12 @@ create policy "Users can read runs for their incidents"
         and incidents.clerk_user_id = auth.jwt() ->> 'sub'
     )
   );
+
+drop policy if exists "Users can manage their incident chats" on public.incident_chat_messages;
+create policy "Users can manage their incident chats"
+  on public.incident_chat_messages for all
+  using (clerk_user_id = auth.jwt() ->> 'sub')
+  with check (clerk_user_id = auth.jwt() ->> 'sub');
 
 drop policy if exists "Users can manage their connector configs" on public.connector_configs;
 create policy "Users can manage their connector configs"

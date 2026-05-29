@@ -56,6 +56,30 @@ export type Database = {
           }
         ];
       };
+      incident_chat_messages: {
+        Row: {
+          id: string;
+          clerk_user_id: string;
+          incident_id: string;
+          role: "user" | "assistant";
+          content: string;
+          provider: string | null;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          clerk_user_id: string;
+          incident_id: string;
+          role: "user" | "assistant";
+          content: string;
+          provider?: string | null;
+          model?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["incident_chat_messages"]["Insert"]>;
+        Relationships: [];
+      };
       connector_configs: {
         Row: {
           id: string;

@@ -4,6 +4,7 @@ export type DashboardIncidentStatus = "open" | "investigating" | "mitigated" | "
 
 export type DashboardIncident = {
   id: string;
+  recordId: string;
   title: string;
   severity: Severity;
   timeAgo: string;

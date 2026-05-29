@@ -3,6 +3,27 @@ import type { Json } from "@/lib/supabase/types";
 import type { IncidentAnalysis, IncidentRecord } from "./types";
 
 const memoryStore = new Map<string, IncidentRecord>();
+const memoryChatStore = new Map<string, IncidentChatMessage[]>();
+
+export type IncidentChatMessage = {
+  id: string;
+  userId: string;
+  incidentId: string;
+  role: "user" | "assistant";
+  content: string;
+  provider: string | null;
+  model: string | null;
+  createdAt: string;
+};
+
+export type IncidentChatMessageInput = {
+  userId: string;
+  incidentId: string;
+  role: "user" | "assistant";
+  content: string;
+  provider?: string | null;
+  model?: string | null;
+};
 
 function hasSupabaseConfig() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -120,5 +141,88 @@ export async function getIncident(userId: string, id: string): Promise<IncidentR
     severity: data.severity,
     analysis: data.analysis as IncidentAnalysis,
     createdAt: data.created_at
+  };
+}
+
+export async function listIncidentChatMessages(userId: string, incidentId: string): Promise<IncidentChatMessage[]> {
+  if (!hasSupabaseConfig()) {
+    return [...(memoryChatStore.get(chatKey(userId, incidentId)) ?? [])].sort((left, right) =>
+      left.createdAt.localeCompare(right.createdAt)
+    );
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("incident_chat_messages")
+    .select("*")
+    .eq("clerk_user_id", userId)
+    .eq("incident_id", incidentId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapChatMessageRow);
+}
+
+export async function appendIncidentChatMessage(input: IncidentChatMessageInput): Promise<IncidentChatMessage> {
+  const message: IncidentChatMessage = {
+    id: crypto.randomUUID(),
+    userId: input.userId,
+    incidentId: input.incidentId,
+    role: input.role,
+    content: input.content,
+    provider: input.provider ?? null,
+    model: input.model ?? null,
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabaseConfig()) {
+    const key = chatKey(input.userId, input.incidentId);
+    memoryChatStore.set(key, [...(memoryChatStore.get(key) ?? []), message]);
+    return message;
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("incident_chat_messages")
+    .insert({
+      id: message.id,
+      clerk_user_id: message.userId,
+      incident_id: message.incidentId,
+      role: message.role,
+      content: message.content,
+      provider: message.provider,
+      model: message.model,
+      created_at: message.createdAt
+    })
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return mapChatMessageRow(data);
+}
+
+function chatKey(userId: string, incidentId: string) {
+  return `${userId}:${incidentId}`;
+}
+
+function mapChatMessageRow(row: {
+  id: string;
+  clerk_user_id: string;
+  incident_id: string;
+  role: "user" | "assistant";
+  content: string;
+  provider: string | null;
+  model: string | null;
+  created_at: string;
+}): IncidentChatMessage {
+  return {
+    id: row.id,
+    userId: row.clerk_user_id,
+    incidentId: row.incident_id,
+    role: row.role,
+    content: row.content,
+    provider: row.provider,
+    model: row.model,
+    createdAt: row.created_at
   };
 }

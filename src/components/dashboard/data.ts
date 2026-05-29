@@ -3,6 +3,7 @@ import type { Connector, DashboardIncident, TeamMember } from "./types";
 export const incidents: DashboardIncident[] = [
   {
     id: "#4821",
+    recordId: "demo-4821",
     title: "db-primary ECONNREFUSED cascade",
     severity: "critical",
     timeAgo: "10m ago",
@@ -25,6 +26,7 @@ export const incidents: DashboardIncident[] = [
   },
   {
     id: "#4820",
+    recordId: "demo-4820",
     title: "auth-service JWT validation failure",
     severity: "high",
     timeAgo: "1h ago",
@@ -38,6 +40,7 @@ export const incidents: DashboardIncident[] = [
   },
   {
     id: "#4818",
+    recordId: "demo-4818",
     title: "Worker OOM on queue depth spike",
     severity: "medium",
     timeAgo: "3h ago",
@@ -51,6 +54,7 @@ export const incidents: DashboardIncident[] = [
   },
   {
     id: "#4815",
+    recordId: "demo-4815",
     title: "CDN cache miss rate 94% on /assets",
     severity: "low",
     timeAgo: "6h ago",
@@ -64,6 +68,7 @@ export const incidents: DashboardIncident[] = [
   },
   {
     id: "#4810",
+    recordId: "demo-4810",
     title: "Redis keyspace notification lag",
     severity: "medium",
     timeAgo: "12h ago",
