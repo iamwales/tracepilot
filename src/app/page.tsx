@@ -55,14 +55,15 @@ export default function TracePilotLanding() {
       if (cf) cf.classList.remove('show');
 
       // reset pipeline
-      const s: Record<string, string> = {s1:'done', s2:'done', s3:'run', s4:''};
+      const s: Record<string, string> = {s1:'done', s2:'done', s3:'run', s4:'', s5:''};
       Object.entries(s).forEach(([id, cls]) => {
         const el = document.getElementById(id);
         if (el) el.className = 'pstep ' + (cls || '');
       });
-      const n3 = document.getElementById('n3'), n4 = document.getElementById('n4');
+      const n3 = document.getElementById('n3'), n4 = document.getElementById('n4'), n5 = document.getElementById('n5');
       if (n3) n3.className = 'pname run';
       if (n4) n4.className = 'pname';
+      if (n5) n5.className = 'pname';
 
       const pstat = document.getElementById('pstat');
       if (pstat) {
@@ -100,7 +101,7 @@ export default function TracePilotLanding() {
         if (n3) n3.className = 'pname done';
         const s4 = document.getElementById('s4'); if (s4) s4.className = 'pstep run';
         if (n4) n4.className = 'pname run';
-        if (pstat) pstat.textContent = 'Step 4/4…';
+        if (pstat) pstat.textContent = 'Step 4/5…';
         const rc1 = document.getElementById('rc1'); if (rc1) rc1.classList.add('show');
       }, 1800));
 
@@ -116,6 +117,8 @@ export default function TracePilotLanding() {
       timeouts.push(setTimeout(() => {
         const s4 = document.getElementById('s4'); if (s4) s4.className = 'pstep done';
         if (n4) n4.className = 'pname done';
+        const s5 = document.getElementById('s5'); if (s5) s5.className = 'pstep done';
+        if (n5) n5.className = 'pname done';
         clearInterval(tickerInterval);
         if (pstat) { pstat.textContent = 'Complete ✓'; pstat.style.color = '#1db954'; }
         if (pill) { pill.style.color = '#1db954'; pill.style.borderColor = 'rgba(29,185,84,.3)'; pill.style.background = 'rgba(29,185,84,.08)'; }
@@ -205,7 +208,7 @@ export default function TracePilotLanding() {
           <div className="hero-stats">
             <div><div className="sn">4<span>s</span></div><div className="sl">Avg. Triage Time</div></div>
             <div><div className="sn">99<span>%</span></div><div className="sl">Root Cause Accuracy</div></div>
-            <div><div className="sn">5<span>+</span></div><div className="sl">Pipeline Agents</div></div>
+            <div><div className="sn">5</div><div className="sl">Pipeline Agents</div></div>
           </div>
         </div>
 
@@ -271,12 +274,14 @@ export default function TracePilotLanding() {
                         <div className="pstep done" id="s2"></div>
                         <div className="pstep run" id="s3"></div>
                         <div className="pstep" id="s4"></div>
+                        <div className="pstep" id="s5"></div>
                       </div>
                       <div className="pb-names">
-                        <div className="pname done">Normalize</div>
-                        <div className="pname done">Summarize</div>
-                        <div className="pname run" id="n3">Investigate</div>
+                        <div className="pname done">Intake</div>
+                        <div className="pname done">Severity</div>
+                        <div className="pname run" id="n3">Root Cause</div>
                         <div className="pname" id="n4">Remediate</div>
+                        <div className="pname" id="n5">Report</div>
                       </div>
                     </div>
 
@@ -333,14 +338,15 @@ export default function TracePilotLanding() {
       <section className="how" id="how">
         <div className="how-hd reveal">
           <div className="stag">The Pipeline</div>
-          <h2>FOUR AGENTS.<br /><em>ONE CLEAR</em> REPORT.</h2>
-          <p>Each stage is purpose-built — from sanitizing raw input to generating actionable remediation with evidence citations.</p>
+          <h2>FIVE AGENTS.<br /><em>ONE CLEAR</em> REPORT.</h2>
+          <p>Each stage is purpose-built — from intake to severity, root cause, remediation, and a shareable final report.</p>
         </div>
         <div className="pipeline">
-          <div className="pstage reveal"><div className="pnum">01 / NORMALIZER</div><div className="picon">🧹</div><div className="pname2">NORMALIZE</div><div className="pdesc">Cleans raw logs. Strips injection patterns, XSS markup, validates structure, extracts evidence snippets for downstream agents.</div><div className="parr"></div></div>
-          <div className="pstage reveal r1"><div className="pnum">02 / SUMMARIZER</div><div className="picon">📋</div><div className="pname2">SUMMARIZE</div><div className="pdesc">Produces the operator narrative. Assigns severity: low, medium, high, or critical — with evidence-backed reasoning.</div><div className="parr"></div></div>
-          <div className="pstage reveal r2"><div className="pnum">03 / INVESTIGATOR</div><div className="picon">🔍</div><div className="pname2">INVESTIGATE</div><div className="pdesc">Root-cause analysis with confidence scores. Identifies the most probable failure origin using normalized context.</div><div className="parr"></div></div>
-          <div className="pstage reveal r3"><div className="pnum">04 / REMEDIATOR</div><div className="picon">⚡</div><div className="pname2">REMEDIATE</div><div className="pdesc">Turns investigation into ranked actions. Tracks findings, refines the plan as engineers submit updates.</div></div>
+          <div className="pstage reveal"><div className="pnum">01 / INTAKE AGENT</div><div className="picon">📥</div><div className="pname2">INTAKE</div><div className="pdesc">Structures noisy incident input into a reliable working record and extracts the first evidence snippets.</div><div className="parr"></div></div>
+          <div className="pstage reveal r1"><div className="pnum">02 / SEVERITY AGENT</div><div className="picon">🚨</div><div className="pname2">SEVERITY</div><div className="pdesc">Estimates impact, urgency, and customer risk from available signals with confidence scoring.</div><div className="parr"></div></div>
+          <div className="pstage reveal r2"><div className="pnum">03 / ROOT CAUSE AGENT</div><div className="picon">🔍</div><div className="pname2">ROOT CAUSE</div><div className="pdesc">Builds evidence-grounded hypotheses, flags missing context, and ranks likely failure origins.</div><div className="parr"></div></div>
+          <div className="pstage reveal r3"><div className="pnum">04 / REMEDIATION AGENT</div><div className="picon">⚡</div><div className="pname2">REMEDIATE</div><div className="pdesc">Turns findings into immediate response steps and owner-ready actions.</div><div className="parr"></div></div>
+          <div className="pstage reveal r3"><div className="pnum">05 / REPORT AGENT</div><div className="picon">📄</div><div className="pname2">REPORT</div><div className="pdesc">Compiles the final incident narrative for sharing, review, and audit history.</div></div>
         </div>
       </section>
 
@@ -444,7 +450,7 @@ export default function TracePilotLanding() {
             <ul className="pfts">
               <li>50 incident analyses / month</li>
               <li>Single file + paste ingestion</li>
-              <li>Full 4-agent pipeline</li>
+              <li>Full 5-agent pipeline</li>
               <li>Remediation chat (7-day history)</li>
               <li>JSON export</li>
               <li>Community support</li>
@@ -467,7 +473,7 @@ export default function TracePilotLanding() {
             <ul className="pfts">
               <li>10,000 incident analyses / month</li>
               <li>Single log file upload</li>
-              <li>Full pipeline + strong investigator model</li>
+              <li>Full 5-agent pipeline + strong root cause model</li>
               <li>Persistent chat history + reminders</li>
               <li>Slack + webhook integrations</li>
               <li>PDF + Audit PDF export</li>
