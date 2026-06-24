@@ -2,9 +2,9 @@ import { connectors, teamMembers } from "@/components/dashboard/data";
 import { countMonthlyIncidents } from "@/features/incidents/store";
 import { getClerkUserBillingSnapshot } from "@/lib/clerk/billing";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { createServiceSupabaseClient } from "@/lib/supabase/server";
+import { createServiceDatabaseClient, hasDatabaseConfig } from "@/lib/db/server";
 import { planDetails } from "./plans";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 import type {
   ConnectorPatch,
   ConnectorRecord,
@@ -31,10 +31,6 @@ const memory = {
 };
 
 const localTeamFallback = new Set<string>();
-
-function hasSupabaseConfig() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
 
 function hasClerkConfig() {
   return Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
@@ -152,18 +148,18 @@ function getMemoryTeam(userId: string) {
 }
 
 export async function listConnectors(userId: string): Promise<ConnectorRecord[]> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     return getMemoryConnectors(userId);
   }
 
   try {
-    const supabase = createServiceSupabaseClient();
-    const { data, error } = await supabase.from("connector_configs").select("*").eq("clerk_user_id", userId).order("name");
+    const db = createServiceDatabaseClient();
+    const { data, error } = await db.from("connector_configs").select("*").eq("clerk_user_id", userId).order("name");
     if (error) throw new Error(error.message);
     if (data?.length) return data.map(mapConnectorRow);
 
     const seeded = defaultConnectors(userId);
-    const { error: insertError } = await supabase.from("connector_configs").upsert(
+    const { error: insertError } = await db.from("connector_configs").upsert(
       seeded.map((connector) => ({
         clerk_user_id: userId,
         connector_id: connector.id,
@@ -197,7 +193,7 @@ export async function updateConnector(userId: string, id: string, patch: Connect
     updatedAt: now()
   };
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memory.connectors.set(
       userId,
       existing.map((connector) => (connector.id === id ? updated : connector))
@@ -206,8 +202,8 @@ export async function updateConnector(userId: string, id: string, patch: Connect
   }
 
   try {
-    const supabase = createServiceSupabaseClient();
-    const { error } = await supabase
+    const db = createServiceDatabaseClient();
+    const { error } = await db
       .from("connector_configs")
       .update({
         connected: updated.connected,
@@ -230,20 +226,20 @@ export async function updateConnector(userId: string, id: string, patch: Connect
 }
 
 export async function getProfile(userId: string, seed: ProfileSeed = {}): Promise<ProfileSettings> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     const existing = memory.profiles.get(userId) ?? defaultProfile(userId, seed);
     const profile = applyProfileSeed(existing, seed);
     memory.profiles.set(userId, profile);
     return profile;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.from("user_settings").select("*").eq("clerk_user_id", userId).maybeSingle();
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db.from("user_settings").select("*").eq("clerk_user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
   if (data) {
     const profile = applyProfileSeed(mapProfileRow(data), seed);
     if (profile.fullName !== data.full_name || profile.email !== data.email) {
-      await supabase
+      await db
         .from("user_settings")
         .update({
           full_name: profile.fullName,
@@ -256,7 +252,7 @@ export async function getProfile(userId: string, seed: ProfileSeed = {}): Promis
   }
 
   const profile = defaultProfile(userId, seed);
-  const { error: insertError } = await supabase.from("user_settings").insert({
+  const { error: insertError } = await db.from("user_settings").insert({
     clerk_user_id: userId,
     full_name: profile.fullName,
     email: profile.email,
@@ -269,13 +265,13 @@ export async function getProfile(userId: string, seed: ProfileSeed = {}): Promis
 
 export async function updateProfile(userId: string, profile: Omit<ProfileSettings, "userId" | "updatedAt">): Promise<ProfileSettings> {
   const updated = { ...profile, userId, updatedAt: now() };
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memory.profiles.set(userId, updated);
     return updated;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase.from("user_settings").upsert({
+  const db = createServiceDatabaseClient();
+  const { error } = await db.from("user_settings").upsert({
     clerk_user_id: userId,
     full_name: updated.fullName,
     email: updated.email,
@@ -288,19 +284,19 @@ export async function updateProfile(userId: string, profile: Omit<ProfileSetting
 }
 
 export async function getNotifications(userId: string): Promise<NotificationSettings> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     const existing = memory.notifications.get(userId) ?? defaultNotifications(userId);
     memory.notifications.set(userId, existing);
     return existing;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.from("notification_preferences").select("*").eq("clerk_user_id", userId).maybeSingle();
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db.from("notification_preferences").select("*").eq("clerk_user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
   if (data) return mapNotificationRow(data);
 
   const defaults = defaultNotifications(userId);
-  const { error: insertError } = await supabase.from("notification_preferences").insert({
+  const { error: insertError } = await db.from("notification_preferences").insert({
     clerk_user_id: userId,
     critical: defaults.critical,
     high: defaults.high,
@@ -317,13 +313,13 @@ export async function updateNotifications(
   settings: Omit<NotificationSettings, "userId" | "updatedAt">
 ): Promise<NotificationSettings> {
   const updated = { ...settings, userId, updatedAt: now() };
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memory.notifications.set(userId, updated);
     return updated;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase.from("notification_preferences").upsert({
+  const db = createServiceDatabaseClient();
+  const { error } = await db.from("notification_preferences").upsert({
     clerk_user_id: userId,
     critical: updated.critical,
     high: updated.high,
@@ -339,20 +335,20 @@ export async function updateNotifications(
 export async function getSubscription(userId: string): Promise<SubscriptionSettings> {
   const [clerkSnapshot, monthlyAnalyses] = await Promise.all([getClerkUserBillingSnapshot(userId), countMonthlyIncidents(userId)]);
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     const existing = memory.subscriptions.get(userId) ?? defaultSubscription(userId);
     const merged = mergeSubscription(existing, clerkSnapshot, monthlyAnalyses);
     memory.subscriptions.set(userId, merged);
     return merged;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.from("subscriptions").select("*").eq("clerk_user_id", userId).maybeSingle();
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db.from("subscriptions").select("*").eq("clerk_user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
   if (data) return mergeSubscription(mapSubscriptionRow(data), clerkSnapshot, monthlyAnalyses);
 
   const defaults = defaultSubscription(userId);
-  const { error: insertError } = await supabase.from("subscriptions").insert({
+  const { error: insertError } = await db.from("subscriptions").insert({
     clerk_user_id: userId,
     plan: defaults.plan,
     status: defaults.status,
@@ -376,13 +372,13 @@ export async function updateSubscriptionPlan(userId: string, plan: SubscriptionS
     updatedAt: now()
   };
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memory.subscriptions.set(userId, updated);
     return updated;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { error } = await db
     .from("subscriptions")
     .update({ plan: updated.plan, status: updated.status, updated_at: updated.updatedAt })
     .eq("clerk_user_id", userId);
@@ -395,12 +391,12 @@ export async function listTeamMembers(userId: string): Promise<TeamMemberRecord[
     return listClerkTeamMembers(userId);
   }
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     return getMemoryTeam(userId);
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.from("team_members").select("*").eq("clerk_user_id", userId).order("invited_at");
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db.from("team_members").select("*").eq("clerk_user_id", userId).order("invited_at");
   if (error) {
     warnDashboardStorageFallback("team:list-local-members", new Error(error.message));
     return getMemoryTeam(userId);
@@ -408,7 +404,7 @@ export async function listTeamMembers(userId: string): Promise<TeamMemberRecord[
   if (data?.length) return data.map(mapTeamRow);
 
   const seeded = defaultTeam(userId);
-  const { error: insertError } = await supabase.from("team_members").insert(
+  const { error: insertError } = await db.from("team_members").insert(
     seeded.map((member) => ({
       id: member.id,
       clerk_user_id: userId,
@@ -464,13 +460,13 @@ async function inviteLocalTeamMember(userId: string, email: string, role: TeamIn
     invitedAt: now()
   };
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memory.team.set(userId, [...existing, member]);
     return member;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase.from("team_members").insert({
+  const db = createServiceDatabaseClient();
+  const { error } = await db.from("team_members").insert({
     id: member.id,
     clerk_user_id: userId,
     name: member.name,

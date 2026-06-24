@@ -1,5 +1,5 @@
-import { createServiceSupabaseClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/supabase/types";
+import { createServiceDatabaseClient, hasDatabaseConfig } from "@/lib/db/server";
+import type { Json } from "@/lib/db/types";
 import type { IncidentAnalysis, IncidentRecord } from "./types";
 
 const memoryStore = new Map<string, IncidentRecord>();
@@ -25,18 +25,14 @@ export type IncidentChatMessageInput = {
   model?: string | null;
 };
 
-function hasSupabaseConfig() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
-
 export async function saveIncident(record: IncidentRecord): Promise<IncidentRecord> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     memoryStore.set(record.id, record);
     return record;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase.from("incidents").insert({
+  const db = createServiceDatabaseClient();
+  const { error } = await db.from("incidents").insert({
     id: record.id,
     clerk_user_id: record.userId,
     title: record.title,
@@ -57,21 +53,21 @@ export async function saveIncident(record: IncidentRecord): Promise<IncidentReco
     output: stage.output,
     created_at: stage.createdAt
   }));
-  const { error: runError } = await supabase.from("agent_runs").insert(runs);
+  const { error: runError } = await db.from("agent_runs").insert(runs);
   if (runError) throw new Error(runError.message);
 
   return record;
 }
 
 export async function listIncidents(userId: string): Promise<IncidentRecord[]> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     return Array.from(memoryStore.values())
       .filter((record) => record.userId === userId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db
     .from("incidents")
     .select("*")
     .eq("clerk_user_id", userId)
@@ -95,15 +91,15 @@ export async function countMonthlyIncidents(userId: string, now = new Date()): P
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const nextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     return Array.from(memoryStore.values()).filter((record) => {
       const createdAt = new Date(record.createdAt);
       return record.userId === userId && createdAt >= monthStart && createdAt < nextMonthStart;
     }).length;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { count, error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { count, error } = await db
     .from("incidents")
     .select("id", { count: "exact", head: true })
     .eq("clerk_user_id", userId)
@@ -115,13 +111,13 @@ export async function countMonthlyIncidents(userId: string, now = new Date()): P
 }
 
 export async function getIncident(userId: string, id: string): Promise<IncidentRecord | null> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     const record = memoryStore.get(id);
     return record?.userId === userId ? record : null;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db
     .from("incidents")
     .select("*")
     .eq("id", id)
@@ -145,14 +141,14 @@ export async function getIncident(userId: string, id: string): Promise<IncidentR
 }
 
 export async function listIncidentChatMessages(userId: string, incidentId: string): Promise<IncidentChatMessage[]> {
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     return [...(memoryChatStore.get(chatKey(userId, incidentId)) ?? [])].sort((left, right) =>
       left.createdAt.localeCompare(right.createdAt)
     );
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db
     .from("incident_chat_messages")
     .select("*")
     .eq("clerk_user_id", userId)
@@ -175,14 +171,14 @@ export async function appendIncidentChatMessage(input: IncidentChatMessageInput)
     createdAt: new Date().toISOString()
   };
 
-  if (!hasSupabaseConfig()) {
+  if (!hasDatabaseConfig()) {
     const key = chatKey(input.userId, input.incidentId);
     memoryChatStore.set(key, [...(memoryChatStore.get(key) ?? []), message]);
     return message;
   }
 
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
+  const db = createServiceDatabaseClient();
+  const { data, error } = await db
     .from("incident_chat_messages")
     .insert({
       id: message.id,

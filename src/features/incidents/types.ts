@@ -1,4 +1,4 @@
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 import type { AgentStageId } from "./agents";
 import type { GuardrailResult } from "./guardrails";
 

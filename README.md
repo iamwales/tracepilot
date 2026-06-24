@@ -7,7 +7,7 @@ TracePilot is an AI-powered incident intelligence platform for turning raw logs 
 
 - Framework: Next.js on Vercel
 - Authentication: Clerk
-- Database: Supabase Postgres
+- Database: CockroachDB
 - AI Agent SDK: OpenAI Agents SDK
 - AI Language Models: OpenRouter (primary) and OpenAI (observability)
 - Observability: Langfuse
@@ -20,8 +20,8 @@ TracePilot is an AI-powered incident intelligence platform for turning raw logs 
 - Completed incident report page
 - Copyable Markdown-style report output
 - Recent incident history
-- Supabase schema and service client
-- Clerk/Supabase configuration placeholders
+- CockroachDB schema and server-side database client
+- Clerk/CockroachDB configuration placeholders
 - OpenRouter structured-output analysis path
 - OpenAI Agents SDK trace spans for incident runs, guardrails, stages, and generations
 - Langfuse OpenAI observation wrapper
@@ -60,19 +60,19 @@ TracePilot uses a modular app architecture:
 - `src/features/incidents/observability.ts`: OpenAI trace and Langfuse setup
 - `src/features/incidents/guardrails.ts`: input/output safety checks
 - `src/lib/auth`: Clerk user resolution with demo fallback
-- `src/lib/supabase`: Supabase clients and types
-- `db`: database schema and policies
+- `src/lib/db`: CockroachDB connection helper and shared database types
+- `db`: database schema
 
 The incident domain is deliberately kept separate from the UI so the agent pipeline can be tested without rendering pages.
 
-## Supabase Setup
+## CockroachDB Setup
 
-1. Create a free Supabase project.
-2. Run `db/schema.sql` in the SQL editor.
-3. Copy the project URL and keys into `.env.local`.
-4. Use the service role key only in server-side environments such as Vercel project secrets.
+1. Create a CockroachDB cluster.
+2. Run `db/schema.sql` against the target database.
+3. Add `COCKROACH_DATABASE_URL` or `DATABASE_URL` to `.env.local`.
+4. Use the same connection string as a server-side secret in Vercel.
 
-Without Supabase keys, TracePilot runs in demo memory mode for local development.
+Without a CockroachDB connection string, TracePilot runs in demo memory mode for local development.
 
 ## Clerk Setup
 
@@ -129,4 +129,4 @@ Blocked input returns `422` with guardrail metadata. Unsafe model output falls b
 
 ## CV Summary
 
-Built TracePilot, a Vercel-ready multi-agent incident intelligence app using Next.js, Clerk, Supabase, TypeScript, OpenRouter structured outputs, OpenAI Agents tracing, Langfuse observability, and guardrailed incident-analysis workflows for severity scoring, root-cause hypotheses, remediation planning, and report generation.
+Built TracePilot, a Vercel-ready multi-agent incident intelligence app using Next.js, Clerk, CockroachDB, TypeScript, OpenRouter structured outputs, OpenAI Agents tracing, Langfuse observability, and guardrailed incident-analysis workflows for severity scoring, root-cause hypotheses, remediation planning, and report generation.
