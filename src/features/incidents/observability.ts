@@ -1,7 +1,7 @@
 import { setTracingDisabled, withAgentSpan, withGenerationSpan, withGuardrailSpan, withTrace } from "@openai/agents";
 import { setDefaultOpenAITracingExporter, setTracingExportApiKey } from "@openai/agents";
 import { Langfuse } from "langfuse";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 
 let tracingConfigured = false;
 let langfuseClient: Langfuse | null | undefined;

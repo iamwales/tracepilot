@@ -1,6 +1,6 @@
 import { AGENT_STAGES, type AgentStageId } from "./agents";
 import { createIncidentDraft, type IncidentInput } from "./schema";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 import type { AgentRun, IncidentAnalysis, Severity } from "./types";
 
 const CRITICAL_TERMS = ["outage", "critical", "unavailable", "data loss", "security", "breach"];

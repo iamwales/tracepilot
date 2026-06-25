@@ -1,5 +1,3 @@
-create extension if not exists pgcrypto;
-
 create table if not exists public.incidents (
   id uuid primary key default gen_random_uuid(),
   clerk_user_id text not null,
@@ -91,70 +89,3 @@ create table if not exists public.team_members (
 
 create index if not exists connector_configs_user_idx on public.connector_configs (clerk_user_id);
 create index if not exists team_members_user_idx on public.team_members (clerk_user_id, invited_at asc);
-
-alter table public.incidents enable row level security;
-alter table public.agent_runs enable row level security;
-alter table public.incident_chat_messages enable row level security;
-alter table public.connector_configs enable row level security;
-alter table public.user_settings enable row level security;
-alter table public.notification_preferences enable row level security;
-alter table public.subscriptions enable row level security;
-alter table public.team_members enable row level security;
-
-drop policy if exists "Users can read their incidents" on public.incidents;
-create policy "Users can read their incidents"
-  on public.incidents for select
-  using (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can create their incidents" on public.incidents;
-create policy "Users can create their incidents"
-  on public.incidents for insert
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can read runs for their incidents" on public.agent_runs;
-create policy "Users can read runs for their incidents"
-  on public.agent_runs for select
-  using (
-    exists (
-      select 1
-      from public.incidents
-      where incidents.id = agent_runs.incident_id
-        and incidents.clerk_user_id = auth.jwt() ->> 'sub'
-    )
-  );
-
-drop policy if exists "Users can manage their incident chats" on public.incident_chat_messages;
-create policy "Users can manage their incident chats"
-  on public.incident_chat_messages for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can manage their connector configs" on public.connector_configs;
-create policy "Users can manage their connector configs"
-  on public.connector_configs for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can manage their settings" on public.user_settings;
-create policy "Users can manage their settings"
-  on public.user_settings for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can manage their notification preferences" on public.notification_preferences;
-create policy "Users can manage their notification preferences"
-  on public.notification_preferences for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can manage their subscription state" on public.subscriptions;
-create policy "Users can manage their subscription state"
-  on public.subscriptions for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');
-
-drop policy if exists "Users can manage their team members" on public.team_members;
-create policy "Users can manage their team members"
-  on public.team_members for all
-  using (clerk_user_id = auth.jwt() ->> 'sub')
-  with check (clerk_user_id = auth.jwt() ->> 'sub');

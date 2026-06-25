@@ -4,7 +4,7 @@ import { runOpenRouterIncidentAgents } from "./openRouterAnalysis";
 import { traceGuardrail, traceIncidentRun, type TraceMetadata } from "./observability";
 import type { IncidentInput } from "./schema";
 import type { IncidentAnalysis, AnalysisProvider, GuardrailMetadata, TokenUsage } from "./types";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 
 export class GuardrailBlockedError extends Error {
   constructor(public readonly guardrails: GuardrailMetadata) {

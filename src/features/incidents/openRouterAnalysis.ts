@@ -7,7 +7,7 @@ import { buildActions, extractEvidence, inferRootCauses, inferSeverity } from ".
 import { traceAgentStage, traceGeneration } from "./observability";
 import type { AgentRun, IncidentAnalysis, Severity, TokenUsage } from "./types";
 import type { IncidentInput } from "./schema";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/db/types";
 
 export const modelAnalysisSchema = z.object({
   summary: z.string().min(20),
